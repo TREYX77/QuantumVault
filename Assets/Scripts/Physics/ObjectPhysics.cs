@@ -1,28 +1,14 @@
 using UnityEngine;
 
-/// <summary>
-/// How a carried prop is oriented. Declared here rather than inside a MonoBehaviour so both
-/// the grabber and the prop can refer to it; a plain enum has no file-name requirement.
-/// </summary>
+// Rigid: locked to view. RigidWithSag: heavy props lag. Dangle: hangs from the grip.
 public enum HoldOrientation
 {
-    /// <summary>Locked to the view and snappy. Best for anything that must be placed precisely.</summary>
     Rigid,
-
-    /// <summary>Locked to the view, but heavy props turn sluggishly and settle behind you.</summary>
     RigidWithSag,
-
-    /// <summary>Rotation left to physics. Hangs and swings from wherever it was grabbed.</summary>
     Dangle
 }
 
-/// <summary>
-/// Marks a rigidbody as a physics prop and describes how its weight should feel. It keeps
-/// no state about being carried: it only answers questions that <see cref="GrabInteract"/>
-/// asks, so the same component works whether the prop is held, thrown or just sat there.
-///
-/// Add it to anything with a Rigidbody that the player should be able to pick up.
-/// </summary>
+// Marks a rigidbody as a pickupable prop and describes how heavy it should feel.
 [RequireComponent(typeof(Rigidbody))]
 [AddComponentMenu("Physics/Object Physics")]
 public class ObjectPhysics : MonoBehaviour
@@ -71,11 +57,7 @@ public class ObjectPhysics : MonoBehaviour
     public float Mass => body != null ? body.mass : 1f;
     public bool OverridesOrientation => overrideOrientation;
     public HoldOrientation Orientation => orientation;
-
-    /// <summary>Walk speed multiplier to hand to Movement while this is being carried.</summary>
     public float CarrySpeedMultiplier => WeightLerp(minSpeedMultiplier);
-
-    /// <summary>Jump height multiplier to hand to Movement while this is being carried.</summary>
     public float CarryJumpMultiplier => WeightLerp(minJumpMultiplier);
 
     void Awake()
@@ -85,27 +67,18 @@ public class ObjectPhysics : MonoBehaviour
 
     void FixedUpdate()
     {
-        // useGravity is switched off while the prop is held, which doubles as the signal
-        // to stop adding to it. Nothing here runs during a carry.
-        if (body == null || !body.useGravity || Mathf.Approximately(gravityScale, 1f))
-        {
-            return;
-        }
+        // useGravity is off while held, so this skips during a carry.
+        if (body == null || !body.useGravity || Mathf.Approximately(gravityScale, 1f)) return;
 
-        // Acceleration, not Force: gravity has to be mass independent or a heavy crate
-        // and a light one would stop falling at the same rate.
+        // Acceleration, not Force: gravity must not depend on mass.
         body.AddForce(Physics.gravity * (gravityScale - 1f), ForceMode.Acceleration);
     }
 
-    // InverseLerp clamps to 0..1, so masses beyond heavyMass sit at the worst penalty
-    // rather than running away into negative multipliers.
     private float WeightLerp(float heaviestValue)
     {
-        if (body == null)
-        {
-            return 1f;
-        }
+        if (body == null) return 1f;
 
+        // InverseLerp clamps, so anything heavier sits at the worst penalty.
         return Mathf.Lerp(1f, heaviestValue, Mathf.InverseLerp(lightMass, heavyMass, body.mass));
     }
 }

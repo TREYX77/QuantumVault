@@ -4,14 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-/// <summary>
-/// Drives the fade overlay and the scene load behind it. Nothing needs to be placed in a
-/// scene: the first transition creates this object, its canvas and its image, and it then
-/// survives every following load. Drop it into a scene by hand only if you want to assign
-/// your own canvas to <see cref="canvasGroup"/> and <see cref="overlayImage"/>.
-///
-/// Call it through <see cref="SceneTransition"/> rather than talking to it directly.
-/// </summary>
+// Runs the fade and the scene load. Builds itself on first use. Call it via SceneTransition.
 [DisallowMultipleComponent]
 public class SceneTransitionFade : MonoBehaviour
 {
@@ -27,20 +20,15 @@ public class SceneTransitionFade : MonoBehaviour
     private static SceneTransitionFade instance;
     private GameObject activeOverlay;
 
-    /// <summary>Reports load progress from 0 to 1 while a transition is running.</summary>
     public event Action<float> Progress;
 
     public bool IsTransitioning { get; private set; }
 
-    /// <summary>The live instance, created on first use.</summary>
     public static SceneTransitionFade Instance
     {
         get
         {
-            if (instance != null)
-            {
-                return instance;
-            }
+            if (instance != null) return instance;
 
             instance = FindAnyObjectByType<SceneTransitionFade>();
 
@@ -54,8 +42,7 @@ public class SceneTransitionFade : MonoBehaviour
         }
     }
 
-    // Statics survive play sessions when Enter Play Mode Options skip the domain reload,
-    // which would otherwise leave a stale instance pointing at a destroyed object.
+    // Statics survive play sessions when the domain reload is skipped.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
@@ -73,10 +60,7 @@ public class SceneTransitionFade : MonoBehaviour
         instance = this;
 
         // DontDestroyOnLoad only accepts root objects.
-        if (transform.parent != null)
-        {
-            transform.SetParent(null, false);
-        }
+        if (transform.parent != null) transform.SetParent(null, false);
 
         DontDestroyOnLoad(gameObject);
         BuildOverlayIfMissing();
@@ -85,10 +69,6 @@ public class SceneTransitionFade : MonoBehaviour
         SetBlocking(false);
     }
 
-    /// <summary>
-    /// Runs the full transition. A second call while one is already running is ignored, so
-    /// a double-clicked button or a re-entered trigger cannot stack two loads.
-    /// </summary>
     public void Play(TransitionSettings settings)
     {
         if (settings == null)
@@ -97,10 +77,7 @@ public class SceneTransitionFade : MonoBehaviour
             return;
         }
 
-        if (IsTransitioning)
-        {
-            return;
-        }
+        if (IsTransitioning) return;
 
         if (string.IsNullOrWhiteSpace(settings.sceneName))
         {
@@ -120,7 +97,6 @@ public class SceneTransitionFade : MonoBehaviour
         StartCoroutine(Run(settings));
     }
 
-    /// <summary>Fades the screen out and leaves it covered. Useful before a cutscene or a quit.</summary>
     public Coroutine FadeOut(TransitionSettings settings)
     {
         ApplyVisuals(settings);
@@ -128,7 +104,6 @@ public class SceneTransitionFade : MonoBehaviour
         return StartCoroutine(FadeTo(1f, settings.fadeOutDuration, settings.curve));
     }
 
-    /// <summary>Fades a covered screen back in.</summary>
     public Coroutine FadeIn(TransitionSettings settings)
     {
         return StartCoroutine(FadeInRoutine(settings));
@@ -153,10 +128,10 @@ public class SceneTransitionFade : MonoBehaviour
 
         AsyncOperation load = SceneManager.LoadSceneAsync(settings.sceneName);
 
-        // Hold activation back so the new scene cannot pop in before the hold has played.
+        // Held back so the new scene cannot appear before the hold has played.
         load.allowSceneActivation = false;
 
-        // Progress stalls at 0.9 while activation is blocked, so rescale it to read 0..1.
+        // Progress stalls at 0.9 while blocked, so rescale it to 0..1.
         while (load.progress < 0.9f)
         {
             Progress?.Invoke(Mathf.Clamp01(load.progress / 0.9f));
@@ -167,16 +142,12 @@ public class SceneTransitionFade : MonoBehaviour
 
         if (settings.holdDuration > 0f)
         {
-            // Unscaled, so a hold still runs when the outgoing scene paused the game.
             yield return new WaitForSecondsRealtime(settings.holdDuration);
         }
 
         load.allowSceneActivation = true;
 
-        while (!load.isDone)
-        {
-            yield return null;
-        }
+        while (!load.isDone) yield return null;
 
         yield return FadeTo(0f, settings.fadeInDuration, settings.curve);
 
@@ -200,7 +171,7 @@ public class SceneTransitionFade : MonoBehaviour
 
         while (elapsed < duration)
         {
-            // Unscaled time, or a pause menu setting timeScale to 0 would freeze the fade.
+            // Unscaled, or a paused game would freeze the fade.
             elapsed += Time.unscaledDeltaTime;
 
             float t = Mathf.Clamp01(elapsed / duration);
@@ -227,10 +198,7 @@ public class SceneTransitionFade : MonoBehaviour
     {
         ClearOverlay();
 
-        if (settings.overlayPrefab == null)
-        {
-            return;
-        }
+        if (settings.overlayPrefab == null) return;
 
         activeOverlay = Instantiate(settings.overlayPrefab, canvasGroup.transform);
     }
@@ -244,16 +212,13 @@ public class SceneTransitionFade : MonoBehaviour
         }
     }
 
-    // Swallows clicks while the screen is covered, so buttons underneath cannot be hit mid-fade.
+    // Swallows clicks while covered, so buttons underneath cannot be hit.
     private void SetBlocking(bool blocking)
     {
         canvasGroup.blocksRaycasts = blocking;
         canvasGroup.interactable = blocking;
 
-        if (overlayImage != null)
-        {
-            overlayImage.raycastTarget = blocking;
-        }
+        if (overlayImage != null) overlayImage.raycastTarget = blocking;
     }
 
     private void BuildOverlayIfMissing()
@@ -273,10 +238,7 @@ public class SceneTransitionFade : MonoBehaviour
 
             canvasGroup = gameObject.GetComponent<CanvasGroup>();
 
-            if (canvasGroup == null)
-            {
-                canvasGroup = gameObject.AddComponent<CanvasGroup>();
-            }
+            if (canvasGroup == null) canvasGroup = gameObject.AddComponent<CanvasGroup>();
         }
 
         if (overlayImage == null)
@@ -286,7 +248,7 @@ public class SceneTransitionFade : MonoBehaviour
 
             overlayImage = imageHost.AddComponent<Image>();
 
-            // Stretch to every corner so it covers any aspect ratio.
+            // Stretch to every corner, so it covers any aspect ratio.
             RectTransform rect = overlayImage.rectTransform;
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;

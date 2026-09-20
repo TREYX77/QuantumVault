@@ -1,12 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// Debug readout for tuning movement. Drop it on any object in the scene and it finds the
-/// Movement component by itself. F3 toggles it.
-///
-/// Temporary tooling: delete the Temp folder before shipping.
-/// </summary>
+// Debug overlay and crosshair. Spawns itself, F3 toggles it. Temporary - delete Temp folder.
 public class GUIstats : MonoBehaviour
 {
     [Tooltip("Optional. Left empty, the first Movement in the scene is used.")]
@@ -36,8 +31,7 @@ public class GUIstats : MonoBehaviour
     [SerializeField] private Vector2 origin = new Vector2(12f, 12f);
     [SerializeField] private float panelWidth = 250f;
 
-    // Source measures in inches, so this converts to the numbers cl_showpos prints in
-    // Half-Life 2 or CS. Handy for comparing against sv_maxspeed values you read online.
+    // Source measures in inches, for comparing against sv_maxspeed.
     private const float MetresToSourceUnits = 1f / 0.0254f;
 
     private const float Padding = 10f;
@@ -62,16 +56,11 @@ public class GUIstats : MonoBehaviour
     private GUIStyle bigStyle;
     private GUIStyle unitStyle;
 
-    // Spawns itself so there is nothing to attach in the scene. If the overlay is not
-    // showing, the cause is a compile error in the Console rather than a missing object.
-    // Delete this method if you would rather place the component by hand.
+    // Spawns itself, so a missing overlay means a compile error, not a missing object.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AutoSpawn()
     {
-        if (FindAnyObjectByType<GUIstats>() != null)
-        {
-            return;
-        }
+        if (FindAnyObjectByType<GUIstats>() != null) return;
 
         GameObject host = new GameObject("GUI Stats (auto)");
         host.AddComponent<GUIstats>();
@@ -88,42 +77,30 @@ public class GUIstats : MonoBehaviour
 
     void OnDestroy()
     {
-        if (pixel != null)
-        {
-            Destroy(pixel);
-        }
+        if (pixel != null) Destroy(pixel);
     }
 
     void Update()
     {
         Keyboard keyboard = Keyboard.current;
 
-        if (keyboard != null && keyboard[toggleKey].wasPressedThisFrame)
-        {
-            visible = !visible;
-        }
+        if (keyboard != null && keyboard[toggleKey].wasPressedThisFrame) visible = !visible;
 
-        // The player may be spawned after this object, so keep looking, but cheaply.
         if ((movement == null || grab == null) && Time.unscaledTime >= nextSearchTime)
         {
             nextSearchTime = Time.unscaledTime + 1f;
             FindReferences();
         }
 
-        if (movement == null)
-        {
-            return;
-        }
+        if (movement == null) return;
 
         float speed = movement.Speed;
 
-        // Sampling belongs here, not in OnGUI: OnGUI runs several times per frame for
-        // layout and repaint events, which would pack the graph with duplicate samples.
+        // Sampled here, not in OnGUI, which runs several times a frame.
         history[historyHead] = speed;
         historyHead = (historyHead + 1) % history.Length;
 
-        // Peak is per-run. Coming to rest on the ground starts a fresh measurement, which
-        // is what you want when comparing one bunny hop chain against the next.
+        // Peak is per run, so stopping starts a fresh measurement.
         if (movement.IsGrounded && speed < 0.1f)
         {
             peakSpeed = 0f;
@@ -138,15 +115,9 @@ public class GUIstats : MonoBehaviour
     {
         EnsureResources();
 
-        if (showCrosshair)
-        {
-            DrawCrosshair();
-        }
+        if (showCrosshair) DrawCrosshair();
 
-        if (!visible)
-        {
-            return;
-        }
+        if (!visible) return;
 
         Rect panel = new Rect(origin.x, origin.y, panelWidth, PanelHeight);
         DrawRect(panel, backgroundColor);
@@ -166,7 +137,6 @@ public class GUIstats : MonoBehaviour
         float w = panel.width - Padding * 2f;
         float y = panel.y + Padding;
 
-        // Headline speed, coloured the moment it passes what the player can reach unaided.
         bigStyle.normal.textColor = gaining ? gainedSpeedColor : normalSpeedColor;
         GUI.Label(new Rect(x, y, w, 30f), speed.ToString("0.00"), bigStyle);
 
@@ -179,22 +149,16 @@ public class GUIstats : MonoBehaviour
 
         Row(x, ref y, w, "Peak", peakSpeed.ToString("0.00") + " m/s");
         Row(x, ref y, w, "Vertical", movement.Velocity.y.ToString("0.00") + " m/s");
-
-        // The word already says which state it is, so this needs no colour of its own.
         Row(x, ref y, w, "State", movement.IsGrounded ? "Grounded" : "Airborne");
-
         Row(x, ref y, w, "Mode", movement.IsSourceMode ? "Source" : "Simple");
 
-        // Given a full line rather than a Row, because the rejection reasons are long and
-        // would be cut off in half a panel width.
+        // Full line, because rejection reasons are long.
         if (grab != null)
         {
             y += 4f;
             GUI.Label(new Rect(x, y, w, RowHeight), "Aim", labelStyle);
             y += RowHeight;
 
-            // Brightness instead of hue: a live target reads white, anything else sits
-            // back in the same grey as the labels.
             GUI.Label(new Rect(x, y, w, RowHeight), grab.AimStatus,
                 grab.Aimed != null ? valueStyle : labelStyle);
 
@@ -216,21 +180,17 @@ public class GUIstats : MonoBehaviour
     {
         DrawRect(area, new Color(0f, 0f, 0f, 0.35f));
 
-        // Scale to the peak so a climbing trace stays on screen, but never below walk speed
-        // or the reference line would sit off the top of a stationary graph.
+        // Never below walk speed, or the reference line sits off the top.
         float max = Mathf.Max(peakSpeed, baseSpeed) * graphHeadroom;
 
         float barWidth = area.width / history.Length;
 
         for (int i = 0; i < history.Length; i++)
         {
-            // Walk the ring buffer oldest first so the trace scrolls left to right.
+            // Oldest first, so the trace scrolls left to right.
             float sample = history[(historyHead + i) % history.Length];
 
-            if (sample <= 0.001f)
-            {
-                continue;
-            }
+            if (sample <= 0.001f) continue;
 
             float height = Mathf.Clamp01(sample / max) * area.height;
             Color color = sample > baseSpeed + 0.05f ? gainedSpeedColor : normalSpeedColor;
@@ -239,8 +199,7 @@ public class GUIstats : MonoBehaviour
                 Mathf.Max(1f, barWidth), height), color);
         }
 
-        // Reference line at walk speed. Anything above it is speed the player gained
-        // through momentum rather than by holding a key.
+        // Above this line is speed gained from momentum, not from holding a key.
         float referenceY = area.yMax - Mathf.Clamp01(baseSpeed / max) * area.height;
         DrawRect(new Rect(area.x, referenceY, area.width, 1f), referenceColor);
 
@@ -258,15 +217,8 @@ public class GUIstats : MonoBehaviour
 
     private void FindReferences()
     {
-        if (movement == null)
-        {
-            movement = FindAnyObjectByType<Movement>();
-        }
-
-        if (grab == null)
-        {
-            grab = FindAnyObjectByType<GrabInteract>();
-        }
+        if (movement == null) movement = FindAnyObjectByType<Movement>();
+        if (grab == null) grab = FindAnyObjectByType<GrabInteract>();
     }
 
     private void DrawCrosshair()
@@ -275,34 +227,23 @@ public class GUIstats : MonoBehaviour
         float x = (Screen.width - size) * 0.5f;
         float y = (Screen.height - size) * 0.5f;
 
-        // A dark halo a pixel out on every side, so the dot stays readable against a bright
-        // skybox and a dark wall alike without needing an actual texture.
+        // Dark halo, so the dot reads against bright and dark alike.
         DrawRect(new Rect(x - 1f, y - 1f, size + 2f, size + 2f), new Color(0f, 0f, 0f, 0.55f));
 
         bool onTarget = grab != null && grab.Aimed != null;
 
-        // Monochrome. A live grab target reads as a solid dot while everything else sits
-        // back at partial opacity, so the cue survives without another colour on screen.
         DrawRect(new Rect(x, y, size, size), new Color(1f, 1f, 1f, onTarget ? 1f : 0.5f));
 
         DrawChargeMeter();
     }
 
-    // Only present while a throw is being charged, so it stays out of the way the rest
-    // of the time. Sits under the dot rather than around it, which keeps the aim clear.
     private void DrawChargeMeter()
     {
-        if (grab == null)
-        {
-            return;
-        }
+        if (grab == null) return;
 
         float charge = grab.ChargeNormalized;
 
-        if (charge <= 0f)
-        {
-            return;
-        }
+        if (charge <= 0f) return;
 
         const float meterWidth = 46f;
         const float meterHeight = 3f;
@@ -312,12 +253,10 @@ public class GUIstats : MonoBehaviour
 
         DrawRect(new Rect(x - 1f, y - 1f, meterWidth + 2f, meterHeight + 2f), new Color(0f, 0f, 0f, 0.6f));
         DrawRect(new Rect(x, y, meterWidth, meterHeight), new Color(1f, 1f, 1f, 0.2f));
-
-        // The bar length alone carries the charge, so the fill stays plain white.
         DrawRect(new Rect(x, y, meterWidth * charge, meterHeight), Color.white);
     }
 
-    // Styles and textures have to be built inside a GUI context, not in Awake.
+    // Styles and textures need a GUI context, so not in Awake.
     private void EnsureResources()
     {
         if (pixel == null)
@@ -327,10 +266,7 @@ public class GUIstats : MonoBehaviour
             pixel.Apply();
         }
 
-        if (labelStyle != null)
-        {
-            return;
-        }
+        if (labelStyle != null) return;
 
         labelStyle = new GUIStyle(GUI.skin.label)
         {

@@ -1,10 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// One transition, described in the inspector. Shared by buttons, trigger volumes and
-/// direct calls to <see cref="SceneTransition"/>, so a fade is authored the same way
-/// everywhere. Every field has a working default: only the scene name is required.
-/// </summary>
+// One transition, authored in the inspector. Only sceneName is required.
 [System.Serializable]
 public class TransitionSettings
 {
@@ -36,12 +32,10 @@ public class TransitionSettings
              "It is spawned under the transition canvas and destroyed when the fade finishes.")]
     public GameObject overlayPrefab;
 
-    /// <summary>Total time the transition takes, ignoring how long the scene itself takes to load.</summary>
     public float TotalDuration => fadeOutDuration + holdDuration + fadeInDuration;
 
     public TransitionSettings() { }
 
-    /// <summary>Convenience for building a transition in code.</summary>
     public TransitionSettings(string sceneName, float fadeDuration = 0.4f)
     {
         this.sceneName = sceneName;

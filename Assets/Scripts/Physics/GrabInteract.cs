@@ -1,15 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// Picks up, carries, rotates and throws <see cref="ObjectPhysics"/> props.
-///
-/// The hold is rigid, so a carried object sits dead still relative to the camera no matter
-/// what it weighs. Weight is communicated instead through the walk speed penalty handed to
-/// <see cref="Movement"/>, and through how far the prop travels when thrown.
-///
-/// Goes on the player, alongside Movement.
-/// </summary>
+// Picks up, carries, rotates and throws ObjectPhysics props. Goes on the player.
 [AddComponentMenu("Physics/Grab Interact")]
 public class GrabInteract : MonoBehaviour
 {
@@ -117,56 +109,33 @@ public class GrabInteract : MonoBehaviour
     private Vector3 aimedPoint;
     private Vector3 grabLocalPoint;
 
-    // Rigidbody settings overridden during a carry, restored on release.
-    private float cachedMaxAngularVelocity;
-
-    /// <summary>The prop's own orientation mode if it has one, otherwise the grabber's default.</summary>
-    private HoldOrientation ActiveOrientation =>
-        held != null && held.OverridesOrientation ? held.Orientation : defaultOrientation;
-
-    /// <summary>Heavier props follow more slowly. Shared by the position and rotation drives.</summary>
-    private float MassResponse => 1f / (1f + (heldBody != null ? heldBody.mass : 0f) * massInfluence);
-
-    // Rigidbody settings overridden during a carry, restored on release.
+    // Saved on grab, put back on release.
     private bool cachedUseGravity;
     private RigidbodyInterpolation cachedInterpolation;
     private CollisionDetectionMode cachedCollisionMode;
+    private float cachedMaxAngularVelocity;
 
     public bool IsHolding => held != null;
     public ObjectPhysics Held => held;
-
-    /// <summary>What the player is currently aiming at and could pick up, or null.</summary>
     public ObjectPhysics Aimed { get; private set; }
-
-    /// <summary>Throw charge from 0 to 1, or 0 when not charging. Drive a HUD meter from this.</summary>
     public float ChargeNormalized => charging ? NormalizedCharge : 0f;
-
-    /// <summary>Current carry distance, so a HUD can show how far the object has been pushed.</summary>
     public float HoldDistance => currentHoldDistance;
+
+    public string AimStatus { get; private set; } = "nothing in range";
 
     private float NormalizedCharge =>
         maxChargeTime <= 0f ? 1f : Mathf.Clamp01(chargeTime / maxChargeTime);
 
-    /// <summary>
-    /// Why the current aim can or cannot be grabbed, in plain words. Shown by the debug
-    /// overlay, because a grab that silently does nothing is otherwise impossible to
-    /// diagnose from inside the game.
-    /// </summary>
-    public string AimStatus { get; private set; } = "nothing in range";
+    private HoldOrientation ActiveOrientation =>
+        held != null && held.OverridesOrientation ? held.Orientation : defaultOrientation;
 
-    /// <summary>
-    /// The direction the player is looking. Prefers PlayerCamera's authoritative angles,
-    /// but falls back to the camera transform, so a missing PlayerCamera degrades the
-    /// rotate-while-holding feature rather than breaking grabbing outright.
-    /// </summary>
+    private float MassResponse => 1f / (1f + (heldBody != null ? heldBody.mass : 0f) * massInfluence);
+
     private Quaternion ViewRotation
     {
         get
         {
-            if (playerCamera != null)
-            {
-                return playerCamera.LookRotation;
-            }
+            if (playerCamera != null) return playerCamera.LookRotation;
 
             return viewCamera != null ? viewCamera.transform.rotation : Quaternion.identity;
         }
@@ -177,71 +146,32 @@ public class GrabInteract : MonoBehaviour
         ResolveReferences();
     }
 
-    /// <summary>
-    /// Walks every plausible rig layout rather than assuming one. PlayerCamera may sit on
-    /// the Camera itself, on a rig object above it, or be absent entirely, and this
-    /// component may be on the capsule or a child of it.
-    /// </summary>
+    // Tries every rig layout, since PlayerCamera may sit anywhere or be missing.
     private void ResolveReferences()
     {
-        if (movement == null)
-        {
-            movement = GetComponentInParent<Movement>();
-        }
+        if (movement == null) movement = GetComponentInParent<Movement>();
+        if (playerCollider == null) playerCollider = GetComponentInParent<CharacterController>();
+        if (playerCamera == null) playerCamera = GetComponentInChildren<PlayerCamera>(true);
+        if (playerCamera == null) playerCamera = FindAnyObjectByType<PlayerCamera>();
 
-        if (playerCollider == null)
-        {
-            playerCollider = GetComponentInParent<CharacterController>();
-        }
-
-        if (playerCamera == null)
-        {
-            // Searching inactive objects too, since a rig may start disabled.
-            playerCamera = GetComponentInChildren<PlayerCamera>(true);
-        }
-
-        if (playerCamera == null)
-        {
-            playerCamera = FindAnyObjectByType<PlayerCamera>();
-        }
-
-        if (viewCamera != null)
-        {
-            return;
-        }
+        if (viewCamera != null) return;
 
         if (playerCamera != null)
         {
-            // PlayerCamera is normally on the Camera object, but may be on a rig above it.
             viewCamera = playerCamera.GetComponent<Camera>();
 
-            if (viewCamera == null)
-            {
-                viewCamera = playerCamera.GetComponentInChildren<Camera>(true);
-            }
+            if (viewCamera == null) viewCamera = playerCamera.GetComponentInChildren<Camera>(true);
         }
 
-        if (viewCamera == null)
-        {
-            viewCamera = GetComponentInChildren<Camera>(true);
-        }
+        if (viewCamera == null) viewCamera = GetComponentInChildren<Camera>(true);
 
-        // Camera.main only finds cameras tagged MainCamera, so the untagged case needs
-        // one last sweep before giving up.
-        if (viewCamera == null)
-        {
-            viewCamera = Camera.main;
-        }
-
-        if (viewCamera == null)
-        {
-            viewCamera = FindAnyObjectByType<Camera>();
-        }
+        // Camera.main only finds cameras tagged MainCamera, so sweep for any as a fallback.
+        if (viewCamera == null) viewCamera = Camera.main;
+        if (viewCamera == null) viewCamera = FindAnyObjectByType<Camera>();
     }
 
     void OnDisable()
     {
-        // Never leave a prop weightless or the camera stuck with look suspended.
         Release();
     }
 
@@ -249,15 +179,10 @@ public class GrabInteract : MonoBehaviour
     {
         Keyboard keyboard = Keyboard.current;
 
-        if (keyboard == null)
-        {
-            return;
-        }
+        if (keyboard == null) return;
 
         Mouse mouse = Mouse.current;
 
-        // Refreshed every frame while empty handed so the crosshair and the debug readout
-        // can show what is under the aim before the player commits to grabbing it.
         if (!IsHolding)
         {
             RefreshAim();
@@ -287,12 +212,8 @@ public class GrabInteract : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (!IsHolding)
-        {
-            return;
-        }
+        if (!IsHolding) return;
 
-        // The prop may have been destroyed by something else mid carry.
         if (heldBody == null || viewCamera == null)
         {
             ClearHeldState();
@@ -302,21 +223,18 @@ public class GrabInteract : MonoBehaviour
         Transform view = viewCamera.transform;
         Vector3 target = view.position + view.forward * currentHoldDistance;
 
-        // Driven by the point that was actually grabbed rather than the pivot, recomputed
-        // from the live transform each step so it self-corrects as the prop rotates.
+        // Follows the grabbed point, not the pivot
         Vector3 grabWorldPoint = heldBody.transform.TransformPoint(grabLocalPoint);
         Vector3 delta = target - grabWorldPoint;
         float distance = delta.magnitude;
 
         if (distance > breakDistance)
         {
-            // Wedged against geometry and falling badly behind. Letting go beats forcing it.
             Release();
             return;
         }
 
-        // Grip eases off the further the prop has been left behind, so one pressed into a
-        // wall settles against it rather than fighting the solver every step.
+        // Eases off when blocked, so a prop pressed into a wall rests instead of grinding.
         float blocked = Mathf.InverseLerp(softenDistance, breakDistance, distance);
         float grip = Mathf.Lerp(1f, blockedFollowScale, blocked);
 
@@ -330,26 +248,17 @@ public class GrabInteract : MonoBehaviour
         ApplyHoldRotation();
     }
 
-    /// <summary>
-    /// Velocity driven, so the prop still collides rather than teleporting through walls.
-    /// The mass clamp is what turns a snap into a drag, and damping stops the correction
-    /// ringing when it meets resistance.
-    /// </summary>
+    // Velocity, not position, so walls still stop it. The mass clamp makes it drag.
     private void ApplyRigidHold(Vector3 delta, float grip)
     {
         float maxFollow = followSpeed * MassResponse;
 
         Vector3 desired = Vector3.ClampMagnitude(delta / Time.fixedDeltaTime, maxFollow) * grip;
 
-        // First order low pass. FixedUpdate runs at a fixed rate, so a plain Lerp is stable.
         heldBody.linearVelocity = Vector3.Lerp(heldBody.linearVelocity, desired, 1f - followDamping);
     }
 
-    /// <summary>
-    /// A spring applied at the grab point, with gravity left on. Because the force acts off
-    /// the centre of mass it produces torque for free, which is what makes a ladder taken by
-    /// one end hang and swing instead of floating level.
-    /// </summary>
+    // Off-centre force makes torque, so a ladder held by one end hangs and swings.
     private void ApplyDangleHold(Vector3 delta, Vector3 grabWorldPoint, float grip)
     {
         float stiffness = dangleStiffness * MassResponse * grip;
@@ -366,19 +275,14 @@ public class GrabInteract : MonoBehaviour
 
         difference.ToAngleAxis(out float angle, out Vector3 axis);
 
-        // ToAngleAxis returns an infinite or zero axis for a near identity rotation, which
-        // would put NaN into the rigidbody and freeze it permanently.
+        // ToAngleAxis gives a bad axis near zero rotation, which would NaN the rigidbody.
         if (axis.sqrMagnitude < 0.0001f || float.IsNaN(axis.x) || float.IsInfinity(axis.x))
         {
             heldBody.angularVelocity = Vector3.zero;
             return;
         }
 
-        // Take the short way round rather than spinning 350 degrees to reach 10.
-        if (angle > 180f)
-        {
-            angle -= 360f;
-        }
+        if (angle > 180f) angle -= 360f;
 
         if (Mathf.Abs(angle) < 0.01f)
         {
@@ -388,8 +292,6 @@ public class GrabInteract : MonoBehaviour
 
         Vector3 angular = axis.normalized * (angle * Mathf.Deg2Rad / Time.fixedDeltaTime);
 
-        // Sag mode lets mass slow the turn, so a heavy prop swings round behind the view
-        // and settles once you stop. Rigid mode takes the correction at full strength.
         if (ActiveOrientation == HoldOrientation.RigidWithSag)
         {
             angular = Vector3.ClampMagnitude(angular, carryMaxAngularVelocity * MassResponse);
@@ -399,36 +301,21 @@ public class GrabInteract : MonoBehaviour
         heldBody.angularVelocity = angular;
     }
 
-    /// <summary>
-    /// Wheel pushes the held object away and pulls it closer. Movement.ScrollJumpEnabled is
-    /// switched off during a carry, so the same wheel does not also fire a jump.
-    /// </summary>
     private void UpdateHoldDistance(Mouse mouse)
     {
-        if (mouse == null || !IsHolding)
-        {
-            return;
-        }
+        if (mouse == null || !IsHolding) return;
 
         float scroll = mouse.scroll.ReadValue().y;
 
-        if (Mathf.Abs(scroll) < 0.01f)
-        {
-            return;
-        }
+        if (Mathf.Abs(scroll) < 0.01f) return;
 
-        // Only the sign is used. Wheel magnitude is 120 per notch on Windows and 1
-        // elsewhere, so reading the value directly would move wildly different amounts.
+        // Sign only: the wheel reports 120 per notch on Windows and 1 elsewhere.
         currentHoldDistance = Mathf.Clamp(
             currentHoldDistance + Mathf.Sign(scroll) * scrollDistanceStep,
             minHoldDistance,
             maxHoldDistance);
     }
 
-    /// <summary>
-    /// Left mouse charges while held and throws on release. A tap still throws, at
-    /// minThrowScale, so the control never feels unresponsive.
-    /// </summary>
     private void UpdateThrowCharge(Mouse mouse)
     {
         if (mouse == null || !IsHolding)
@@ -444,10 +331,7 @@ public class GrabInteract : MonoBehaviour
             chargeTime = 0f;
         }
 
-        if (!charging)
-        {
-            return;
-        }
+        if (!charging) return;
 
         if (mouse.leftButton.isPressed)
         {
@@ -456,7 +340,7 @@ public class GrabInteract : MonoBehaviour
 
         if (mouse.leftButton.wasReleasedThisFrame)
         {
-            // Read the scale before Throw clears the charge state.
+            // Read before Throw clears it.
             float scale = Mathf.Lerp(minThrowScale, maxThrowScale, chargeCurve.Evaluate(NormalizedCharge));
 
             charging = false;
@@ -474,42 +358,23 @@ public class GrabInteract : MonoBehaviour
         {
             rotating = wantsRotate;
 
-            // Hand the mouse to the object, and give it back on release.
-            if (playerCamera != null)
-            {
-                playerCamera.LookEnabled = !rotating;
-            }
+            if (playerCamera != null) playerCamera.LookEnabled = !rotating;
         }
 
-        if (!rotating || mouse == null)
-        {
-            return;
-        }
+        if (!rotating || mouse == null) return;
 
         Vector2 delta = mouse.delta.ReadValue() * (rotateSensitivity * 0.1f);
 
-        // Pre-multiplied, so the spin happens in camera space. The offset is stored relative
-        // to the view, which is what lets a rotated prop keep its new orientation when you
-        // then look somewhere else.
+        // Applied in camera space, so a rotated prop keeps its angle when you look away.
         holdRotationOffset = Quaternion.AngleAxis(delta.x, Vector3.up)
                            * Quaternion.AngleAxis(-delta.y, Vector3.right)
                            * holdRotationOffset;
     }
 
-    /// <summary>
-    /// Works out what is being aimed at and why it can or cannot be taken.
-    ///
-    /// A plain Physics.Raycast is the obvious implementation and it does not work here: the
-    /// camera sits inside the player's own CharacterController capsule, so the very first
-    /// thing any probe from the eye position hits is the player. Everything on the player
-    /// is filtered out explicitly rather than relying on layers, so this keeps working
-    /// whatever the layer setup ends up being.
-    /// </summary>
     private void RefreshAim()
     {
         Aimed = null;
 
-        // Self-heals if the camera rig is spawned or enabled after this component woke up.
         if (viewCamera == null && Time.unscaledTime >= nextResolveTime)
         {
             nextResolveTime = Time.unscaledTime + 1f;
@@ -526,9 +391,6 @@ public class GrabInteract : MonoBehaviour
 
         Transform view = viewCamera.transform;
 
-        // A sphere rather than a line, so aiming at a small prop does not demand pixel
-        // accuracy. Overlapping hits come back with distance 0, which is why the sort
-        // below measures against collider bounds instead of hit.distance.
         RaycastHit[] hits = Physics.SphereCastAll(
             view.position, grabRadius, view.forward, grabRange,
             grabbableLayers, QueryTriggerInteraction.Ignore);
@@ -546,16 +408,11 @@ public class GrabInteract : MonoBehaviour
 
         foreach (RaycastHit hit in hits)
         {
-            if (hit.collider == null || hit.collider.transform.IsChildOf(transform))
-            {
-                // The player themselves, including the capsule the camera lives inside.
-                continue;
-            }
+            // The camera sits inside the player capsule, so skip anything on the player.
+            if (hit.collider == null || hit.collider.transform.IsChildOf(transform)) continue;
 
             ObjectPhysics candidate = hit.collider.GetComponentInParent<ObjectPhysics>();
 
-            // Each rejection is recorded so the overlay can say which step failed, rather
-            // than just reporting that nothing happened.
             if (candidate == null)
             {
                 rejection ??= hit.collider.name + ": no ObjectPhysics";
@@ -580,6 +437,7 @@ public class GrabInteract : MonoBehaviour
                 continue;
             }
 
+            // Bounds distance, because overlapping hits all report 0 and would tie.
             float distance = Vector3.Distance(
                 view.position, hit.collider.bounds.ClosestPoint(view.position));
 
@@ -588,10 +446,7 @@ public class GrabInteract : MonoBehaviour
                 bestDistance = distance;
                 best = candidate;
 
-                // Where on the surface the probe landed. This becomes the grip, so a long
-                // prop taken by one end stays held by that end instead of its pivot.
-                // SphereCastAll reports (0,0,0) for an already-overlapping hit, in which
-                // case fall back to the nearest point on the collider.
+                // This becomes the grip. Overlapping hits report (0,0,0), hence the fallback.
                 bestPoint = hit.point.sqrMagnitude > 0.0001f
                     ? hit.point
                     : hit.collider.ClosestPoint(view.position);
@@ -613,10 +468,7 @@ public class GrabInteract : MonoBehaviour
     {
         RefreshAim();
 
-        if (Aimed != null)
-        {
-            Grab(Aimed);
-        }
+        if (Aimed != null) Grab(Aimed);
     }
 
     private void Grab(ObjectPhysics target)
@@ -629,33 +481,24 @@ public class GrabInteract : MonoBehaviour
         cachedCollisionMode = heldBody.collisionDetectionMode;
         cachedMaxAngularVelocity = heldBody.maxAngularVelocity;
 
-        // The grip, in the prop's own space, so it survives the prop moving and rotating.
         grabLocalPoint = heldBody.transform.InverseTransformPoint(aimedPoint);
 
-        // Unity defaults this to 7 rad/s. Following a quick mouse turn needs several times
-        // that, and PhysX clamps it silently, so the prop falls behind, demands a bigger
-        // correction, and clamps again. That loop is what made carrying look broken.
+        // Unity caps this at 7 rad/s, too slow to follow a mouse turn, and clamps silently.
         heldBody.maxAngularVelocity = carryMaxAngularVelocity;
 
-        // Dangle keeps gravity so the far end can hang; the other modes drive velocity
-        // outright, where gravity would only fight the grip.
+        // Dangle needs gravity to hang; other modes drive velocity instead.
         heldBody.useGravity = ActiveOrientation == HoldOrientation.Dangle;
 
-        // Physics runs at 50Hz while the camera runs at frame rate. Without interpolation
-        // a held prop visibly steps along behind the view.
+        // Physics runs slower than the camera, so without this the prop steps behind.
         heldBody.interpolation = RigidbodyInterpolation.Interpolate;
 
-        // A fast carry can cover enough ground in one step to tunnel a thin wall.
+        // A fast carry can cross a thin wall in one step.
         heldBody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
         SetPlayerCollision(false);
 
-        // Stored relative to the camera, so looking around carries the prop with you while
-        // any rotation the player dials in with R survives.
         holdRotationOffset = Quaternion.Inverse(ViewRotation) * heldBody.rotation;
 
-        // Starts at the inspector default each time, so a previous carry cannot leave the
-        // next object floating at arm's length.
         currentHoldDistance = Mathf.Clamp(holdDistance, minHoldDistance, maxHoldDistance);
 
         if (movement != null)
@@ -663,18 +506,14 @@ public class GrabInteract : MonoBehaviour
             movement.SpeedMultiplier = held.CarrySpeedMultiplier;
             movement.JumpMultiplier = held.CarryJumpMultiplier;
 
-            // The wheel now belongs to hold distance, so it must stop firing jumps.
+            // The wheel now moves the prop, so it must stop jumping.
             movement.ScrollJumpEnabled = false;
         }
     }
 
-    /// <summary>Drops whatever is held, restoring it to ordinary physics.</summary>
     public void Release()
     {
-        if (!IsHolding)
-        {
-            return;
-        }
+        if (!IsHolding) return;
 
         if (heldBody != null)
         {
@@ -689,18 +528,10 @@ public class GrabInteract : MonoBehaviour
         ClearHeldState();
     }
 
-    /// <summary>
-    /// Throws the held object along the view direction. The scale comes from how long the
-    /// throw was charged, so it multiplies the object's own mass-derived impulse rather
-    /// than replacing it: a fully charged heavy crate still goes less far than a tapped
-    /// light one.
-    /// </summary>
+    // Multiplies the props own impulse, so mass still decides how far it goes.
     public void Throw(float chargeScale = 1f)
     {
-        if (!IsHolding || viewCamera == null)
-        {
-            return;
-        }
+        if (!IsHolding || viewCamera == null) return;
 
         Rigidbody body = heldBody;
         float impulse = held.ThrowImpulse * Mathf.Max(0f, chargeScale);
@@ -712,17 +543,13 @@ public class GrabInteract : MonoBehaviour
         {
             Vector3 inherited = movement.Velocity;
 
-            // The controller holds a small downward bias while grounded to stay on ramps;
-            // passing that on would fire every standing throw slightly into the floor.
+            // Grounded velocity has a downward bias, which would fire the throw into the floor.
             inherited.y = Mathf.Max(0f, inherited.y);
 
             body.linearVelocity = inherited;
         }
 
-        // Impulse is a change in momentum, so the resulting speed is impulse divided by
-        // mass. One value therefore gives a 2kg cube a fast exit and a 50kg crate a short
-        // lob, with no curve needed. VelocityChange here would make them identical, which
-        // is the usual reason thrown props feel weightless.
+        // Impulse divides by mass, so heavy props leave slowly. VelocityChange would not.
         body.AddForce(direction * impulse, ForceMode.Impulse);
     }
 
@@ -737,39 +564,27 @@ public class GrabInteract : MonoBehaviour
         {
             rotating = false;
 
-            if (playerCamera != null)
-            {
-                playerCamera.LookEnabled = true;
-            }
+            if (playerCamera != null) playerCamera.LookEnabled = true;
         }
 
         if (movement != null)
         {
             movement.SpeedMultiplier = 1f;
             movement.JumpMultiplier = 1f;
-
-            // Hand the wheel back to jumping.
             movement.ScrollJumpEnabled = true;
         }
     }
 
-    // Without this the held prop grinds against the player capsule, which reads as a
-    // constant vibration and can shove the player sideways.
+    // Without this the prop grinds against the player capsule.
     private void SetPlayerCollision(bool enabled)
     {
-        if (playerCollider == null || heldBody == null)
-        {
-            return;
-        }
+        if (playerCollider == null || heldBody == null) return;
 
         Collider[] colliders = heldBody.GetComponentsInChildren<Collider>();
 
         foreach (Collider collider in colliders)
         {
-            if (!collider.isTrigger)
-            {
-                Physics.IgnoreCollision(collider, playerCollider, !enabled);
-            }
+            if (!collider.isTrigger) Physics.IgnoreCollision(collider, playerCollider, !enabled);
         }
     }
 }

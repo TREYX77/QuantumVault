@@ -1,14 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// Per-location scene change. Put this on an empty object with a collider at a doorway,
-/// a lift or the edge of a level, set the scene name, and walking in loads it. Adding the
-/// component turns the collider into a trigger for you.
-///
-/// Set <see cref="requireKeyPress"/> for a door the player has to press a key at instead
-/// of one that fires the moment they touch it.
-/// </summary>
+// Per-location scene change. Put on a collider at a doorway; walking in loads the scene.
 [AddComponentMenu("Scene Management/Scene Transition Trigger")]
 [RequireComponent(typeof(Collider))]
 public class SceneTransitionTrigger : MonoBehaviour
@@ -34,18 +27,13 @@ public class SceneTransitionTrigger : MonoBehaviour
     private bool occupied;
     private bool fired;
 
-    /// <summary>Raised when the player is inside and the key press is still needed. Drive a prompt from this.</summary>
     public bool AwaitingKeyPress => occupied && requireKeyPress && !fired;
 
-    // Runs when the component is first added, and on Reset in the inspector.
     void Reset()
     {
         Collider self = GetComponent<Collider>();
 
-        if (self != null)
-        {
-            self.isTrigger = true;
-        }
+        if (self != null) self.isTrigger = true;
     }
 
     void Awake()
@@ -54,7 +42,6 @@ public class SceneTransitionTrigger : MonoBehaviour
 
         if (trigger != null && !trigger.isTrigger)
         {
-            // A solid collider would block the player instead of detecting them.
             Debug.LogWarning(
                 "SceneTransitionTrigger needs its collider set to Is Trigger. Fixing it for this run.",
                 this);
@@ -65,71 +52,46 @@ public class SceneTransitionTrigger : MonoBehaviour
 
     void Update()
     {
-        if (!AwaitingKeyPress || Keyboard.current == null)
-        {
-            return;
-        }
+        if (!AwaitingKeyPress || Keyboard.current == null) return;
 
-        if (Keyboard.current[interactKey].wasPressedThisFrame)
-        {
-            Fire();
-        }
+        if (Keyboard.current[interactKey].wasPressedThisFrame) Fire();
     }
 
     void OnTriggerEnter(Collider other)
     {
-        if (!Accepts(other))
-        {
-            return;
-        }
+        if (!Accepts(other)) return;
 
         occupied = true;
 
-        if (!requireKeyPress)
-        {
-            Fire();
-        }
+        if (!requireKeyPress) Fire();
     }
 
     void OnTriggerExit(Collider other)
     {
-        if (Accepts(other))
-        {
-            occupied = false;
-        }
+        if (Accepts(other)) occupied = false;
     }
 
     private bool Accepts(Collider other)
     {
-        if (fired && onlyOnce)
-        {
-            return false;
-        }
+        if (fired && onlyOnce) return false;
 
         return string.IsNullOrEmpty(requiredTag) || other.CompareTag(requiredTag);
     }
 
-    /// <summary>Starts the transition. Public so a cutscene or puzzle can fire the door itself.</summary>
     public void Fire()
     {
-        if (fired && onlyOnce)
-        {
-            return;
-        }
+        if (fired && onlyOnce) return;
 
         fired = true;
         SceneTransition.Load(transition);
     }
 
-    // Trigger volumes are invisible in the scene view, so draw where this one sits.
+    // Trigger volumes are invisible, so draw where this one sits.
     void OnDrawGizmos()
     {
         Collider self = GetComponent<Collider>();
 
-        if (self == null)
-        {
-            return;
-        }
+        if (self == null) return;
 
         Gizmos.color = gizmoColor;
         Gizmos.DrawCube(self.bounds.center, self.bounds.size);
