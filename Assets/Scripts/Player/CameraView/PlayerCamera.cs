@@ -31,6 +31,13 @@ public class PlayerCamera : MonoBehaviour
 
     public Vector3 PlanarRight => Quaternion.Euler(0f, yaw, 0f) * Vector3.right;
 
+    /// <summary>
+    /// Set false to suspend mouse look without disabling the component, for example while
+    /// rotating a carried object. LateUpdate keeps writing the rotation, so the view holds
+    /// steady rather than drifting.
+    /// </summary>
+    public bool LookEnabled { get; set; } = true;
+
     void Start()
     {
         yaw = transform.eulerAngles.y;
@@ -68,6 +75,13 @@ public class PlayerCamera : MonoBehaviour
 
                 return;
             }
+        }
+
+        // Suspended while something else is claiming the mouse, such as rotating a held
+        // object. Checked after the cursor handling above so Escape still works.
+        if (!LookEnabled)
+        {
+            return;
         }
 
         // Mouse delta is already a per-frame value, so it must not be scaled by deltaTime.

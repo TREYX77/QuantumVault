@@ -42,7 +42,7 @@ public class SceneTransitionFade : MonoBehaviour
                 return instance;
             }
 
-            instance = FindFirstObjectByType<SceneTransitionFade>();
+            instance = FindAnyObjectByType<SceneTransitionFade>();
 
             if (instance == null)
             {
