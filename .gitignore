@@ -104,7 +104,3 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
-
-# UML diagram tool (Tools/uml) - local deps and generated page
-node_modules/
-dist/
