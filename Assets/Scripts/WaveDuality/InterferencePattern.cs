@@ -11,6 +11,7 @@ public struct Band
     public float Centre => (start + end) * 0.5f;
 
     public Band(float start, float end)
+    
     {
         this.start = start;
         this.end = end;
