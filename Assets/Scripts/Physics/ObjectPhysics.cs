@@ -55,6 +55,7 @@ public class ObjectPhysics : MonoBehaviour
     public bool Grabbable => grabbable;
     public float ThrowImpulse => throwImpulse;
     public float Mass => body != null ? body.mass : 1f;
+    public float GravityScale => gravityScale;
     public bool OverridesOrientation => overrideOrientation;
     public HoldOrientation Orientation => orientation;
     public float CarrySpeedMultiplier => WeightLerp(minSpeedMultiplier);
