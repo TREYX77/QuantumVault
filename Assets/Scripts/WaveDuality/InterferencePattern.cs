@@ -71,7 +71,7 @@ public static class InterferencePattern
 
         for (int i = 0; i < samples; i++)
         {
-            float x = Mathf.Lerp(-width * 0.5f, width * 0.5f, i / (float)(samples - 1));
+            float x = SamplePosition(i, samples, width);
 
             values[i] = observed
                 ? ParticleIntensity(x, slitSeparation, slitWidth, screenDistance, gateDistance, slitCount)
@@ -96,29 +96,38 @@ public static class InterferencePattern
 
         if (intensity == null || intensity.Length < 2) return openings;
 
+        int count = intensity.Length;
         bool inside = false;
         float start = 0f;
 
-        for (int i = 0; i < intensity.Length; i++)
+        for (int i = 0; i < count; i++)
         {
-            float x = Mathf.Lerp(-width * 0.5f, width * 0.5f, i / (float)(intensity.Length - 1));
             bool bright = intensity[i] >= threshold;
 
-            if (bright && !inside)
-            {
-                inside = true;
-                start = x;
-            }
-            else if (!bright && inside)
-            {
-                inside = false;
-                AddIfWideEnough(openings, start, x, minWidth);
-            }
+            if (bright == inside) continue;
+
+            // Halfway between the dark and the bright sample, so a mirrored pattern gives mirrored
+            // doorways instead of one side losing a sample's width and failing the width check.
+            float edge = i == 0
+                ? -width * 0.5f
+                : (SamplePosition(i - 1, count, width) + SamplePosition(i, count, width)) * 0.5f;
+
+            if (bright) start = edge;
+            else AddIfWideEnough(openings, start, edge, minWidth);
+
+            inside = bright;
         }
 
         if (inside) AddIfWideEnough(openings, start, width * 0.5f, minWidth);
 
         return openings;
+    }
+
+    // Counted out from the centre, so sample i and its mirror land on exactly opposite points,
+    // which a Lerp from one edge does not quite manage in floats.
+    private static float SamplePosition(int index, int count, float width)
+    {
+        return (index - (count - 1) * 0.5f) * (width / (count - 1));
     }
 
     // The solid stretches are whatever the openings left over.
