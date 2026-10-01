@@ -1,16 +1,13 @@
 using UnityEngine;
+using System.Collections.Generic;
+using System.Collections;
 
 public class ItemPickup : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+   public ItemSO itemScriptableObj;
 
-    // Update is called once per frame
-    void Update()
+    public void GrabItem()
     {
-        
+        Destroy(gameObject);
     }
 }

@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections.Generic;
+using System.Collections;
 
 [CreateAssetMenu(fileName = "Item", menuName = "Items")]
 public class ItemSO : MonoBehaviour
