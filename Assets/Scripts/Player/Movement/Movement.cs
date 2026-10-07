@@ -319,7 +319,11 @@ public class Movement : MonoBehaviour
     {
         PushRigidbody(hit);
 
-        // Flattened, so ordinary floors are a no-op.
+        // Walkable ground is not a wall. Flattened, an uphill ramp's normal points straight
+        // back at the player, so clipping against it would cancel all speed up any slope.
+        if (Vector3.Angle(hit.normal, Vector3.up) <= controller.slopeLimit) return;
+
+        // Flattened, so only the sideways part of a wall's normal matters.
         Vector3 normal = new Vector3(hit.normal.x, 0f, hit.normal.z);
 
         if (normal.sqrMagnitude < 0.0001f) return;
