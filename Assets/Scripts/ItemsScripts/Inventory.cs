@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,18 +8,15 @@ public class Inventory : MonoBehaviour
     public List<itemType> inventoryList;
     public int selectedItem;
 
-    [Header("Keys")]
-
-    [SerializeField] KeyCode throwItemKey;
-    [SerializeField] KeyCode grabItemKey;
-
     [Header("Item Prefabs")]
 
     [SerializeField] GameObject flashlightItem;
     [SerializeField] GameObject entanglementItem;
     [SerializeField] GameObject waveParticleItem;
 
+
     private Dictionary<itemType, GameObject> itemSetActive = new Dictionary<itemType, GameObject>();
+    private float playerReach;
 
     private void Start()
     {
@@ -32,6 +30,7 @@ public class Inventory : MonoBehaviour
 
     void Update()
     {
+       
         if (Input.GetKeyDown(KeyCode.Alpha1) && inventoryList.Count > 0)
         {
             selectedItem = 0;
