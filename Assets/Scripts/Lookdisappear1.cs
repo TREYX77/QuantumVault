@@ -20,13 +20,10 @@ public class LookDisappear : MonoBehaviour
         // Raycast into the scene.
         if (Physics.Raycast(ray, out RaycastHit hit, maxDistance))
         {
-            //  object the raycast actually hits.
+            //  object the raycast hits.
             GameObject hitObject = hit.collider.gameObject;
 
-            // Print name to see what raycast sees.
-            Debug.Log("RAYCAST SEES: " + hitObject.name);
-
-            // Check whether that object is in selected list.
+            // Check whether object is in selected list.
             if (IsSelected(hitObject))
             {
                 Debug.Log("SELECTED OBJECT: " + hitObject.name);
@@ -40,7 +37,7 @@ public class LookDisappear : MonoBehaviour
                     // Remember  object.
                     hiddenObject = hitObject;
 
-                    // Get its renderer.
+                    // Get renderer.
                     hiddenRenderers =
                         hiddenObject.GetComponentsInChildren<Renderer>();
 
@@ -57,8 +54,8 @@ public class LookDisappear : MonoBehaviour
             }
         }
 
-        // If we're no longer looking at selected object,
-        // make the previous one visible again.
+        // If not longer looking at selected object,
+        // makeprevious one visible again.
         ShowObject();
     }
 
