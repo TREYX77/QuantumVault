@@ -109,10 +109,32 @@ public class Movement : MonoBehaviour
         if (playerCamera == null) playerCamera = GetComponentInChildren<PlayerCamera>();
     }
 
+    // Moves the player so their feet stand on the given point, facing the given yaw, with all
+    // momentum gone. The controller is switched off around the move, since it otherwise
+    // treats a teleport as one long sweep and stops at the first wall.
+    public void Teleport(Vector3 feetPosition, float yaw)
+    {
+        bool wasEnabled = controller.enabled;
+
+        controller.enabled = false;
+        transform.SetPositionAndRotation(
+            feetPosition - controller.center + Vector3.up * (controller.height * 0.5f + controller.skinWidth),
+            Quaternion.Euler(0f, yaw, 0f));
+        controller.enabled = wasEnabled;
+
+        horizontalVelocity = Vector3.zero;
+        verticalVelocity = 0f;
+
+        if (playerCamera != null) playerCamera.SetLook(yaw, 0f);
+    }
+
     void Update()
     {
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null) return;
+
+        // A jump pressed while paused must not fire the moment the game resumes.
+        if (PauseMenu.IsPaused) return;
 
         if (JumpPressedThisFrame(keyboard)) lastJumpPressedTime = Time.time;
 

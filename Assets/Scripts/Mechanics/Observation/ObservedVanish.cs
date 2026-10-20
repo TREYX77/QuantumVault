@@ -12,7 +12,7 @@ using UnityEngine.Rendering;
 // across a vanishing bridge is to cross it without looking at it.
 [AddComponentMenu("Observation/Observed Vanish")]
 [DisallowMultipleComponent]
-public class ObservedVanish : MonoBehaviour
+public class ObservedVanish : MonoBehaviour, IResettable
 {
     public enum VanishMode
     {
@@ -207,6 +207,37 @@ public class ObservedVanish : MonoBehaviour
         }
 
         UpdateFade();
+    }
+
+    // ---- Checkpoint reset -----------------------------------------------------------------
+
+    // Nothing to save: whether it is there depends only on who is looking right now, not on
+    // puzzle progress. Saving it would bring back a bridge that only happened to be vanished
+    // because the player glanced at it as the checkpoint was reached.
+    public void CaptureState()
+    {
+    }
+
+    // Back to its resting state at once, with no fade and no events, then observation takes
+    // over again on the next frame.
+    public void RestoreState()
+    {
+        pendingTime = 0f;
+        nextAppearAttempt = 0f;
+
+        if (mode == VanishMode.ExistOnlyWhenSeen)
+        {
+            HideImmediately();
+
+            return;
+        }
+
+        present = true;
+        alpha = 1f;
+        RestoreMaterials();
+        SetCollidersEnabled(true);
+        SetBodiesFrozen(false);
+        SetVisualsShown(true);
     }
 
     // Switches it off this frame, with no fade and no event. For scripted puzzle resets.

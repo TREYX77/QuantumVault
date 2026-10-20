@@ -9,7 +9,7 @@ using UnityEngine.Events;
 // never sends an exit, and a counting plate would stay pressed forever.
 [AddComponentMenu("Puzzle/Pressure Plate")]
 [DisallowMultipleComponent]
-public class PressurePlate : MonoBehaviour
+public class PressurePlate : MonoBehaviour, IResettable
 {
     [Header("Parts")]
     [Tooltip("The part that sinks. Left empty, the child called Button is used.")]
@@ -234,6 +234,35 @@ public class PressurePlate : MonoBehaviour
             block.SetColor(EmissionColorId, glow * glowIntensity);
             renderer.SetPropertyBlock(block);
         }
+    }
+
+    // ---- Checkpoint reset -----------------------------------------------------------------
+
+    private bool savedPressed;
+
+    public void CaptureState()
+    {
+        savedPressed = IsPressed;
+    }
+
+    // Snaps the button to where it was. A plate that was held down counts as just occupied, so
+    // the crate put back on it has a moment to settle before the release delay runs out.
+    public void RestoreState()
+    {
+        if (button == null) return;
+
+        lastOccupiedTime = savedPressed ? Time.time : float.NegativeInfinity;
+        travel = savedPressed ? 1f : 0f;
+
+        Transform parent = button.parent;
+        float parentScaleY = parent != null ? Mathf.Abs(parent.lossyScale.y) : 1f;
+        Vector3 local = restLocal + Vector3.down * (pressDepth / Mathf.Max(0.0001f, parentScaleY)) * travel;
+
+        button.localPosition = local;
+
+        if (buttonBody != null) buttonBody.position = button.position;
+
+        if (IsPressed != savedPressed) SetPressed(savedPressed);
     }
 
     // ---- Gizmos ------------------------------------------------------------------------

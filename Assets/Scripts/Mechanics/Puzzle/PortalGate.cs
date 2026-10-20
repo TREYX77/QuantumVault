@@ -9,7 +9,7 @@ using UnityEngine.Events;
 [AddComponentMenu("Puzzle/Portal Gate")]
 [RequireComponent(typeof(BoxCollider))]
 [DisallowMultipleComponent]
-public class PortalGate : MonoBehaviour
+public class PortalGate : MonoBehaviour, IResettable
 {
     public enum PlateRule
     {
@@ -192,6 +192,28 @@ public class PortalGate : MonoBehaviour
         }
 
         return null;
+    }
+
+    // ---- Checkpoint reset -----------------------------------------------------------------
+
+    private bool savedOpen;
+
+    public void CaptureState()
+    {
+        savedOpen = IsOpen;
+    }
+
+    // Snaps to how it was, colour included, and lets the warp fire again. The plates are reset
+    // alongside, so the next Update agrees with this state rather than fighting it.
+    public void RestoreState()
+    {
+        IsOpen = savedOpen;
+        fired = false;
+        blend = IsOpen ? 1f : 0f;
+
+        if (barrier != null) barrier.isTrigger = IsOpen;
+
+        ApplyLook();
     }
 
     // ---- Editor helpers ----------------------------------------------------------------

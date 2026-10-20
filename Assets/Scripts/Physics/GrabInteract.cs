@@ -181,6 +181,10 @@ public class GrabInteract : MonoBehaviour
 
         if (keyboard == null) return;
 
+        // Ignored rather than disabled: disabling releases the carried prop, and clicking a
+        // menu button would otherwise count as a throw.
+        if (PauseMenu.IsPaused) return;
+
         Mouse mouse = Mouse.current;
 
         if (!IsHolding)

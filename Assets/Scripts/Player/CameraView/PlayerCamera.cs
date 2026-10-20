@@ -36,15 +36,33 @@ public class PlayerCamera : MonoBehaviour
         if (lockCursor) SetCursorLocked(true);
     }
 
+    // Snaps the view, for respawns and cutscenes.
+    public void SetLook(float newYaw, float newPitch)
+    {
+        yaw = newYaw;
+        pitch = Mathf.Clamp(newPitch, minPitch, maxPitch);
+        transform.rotation = LookRotation;
+    }
+
+    // For menus closing: locks again through the same path, so the pointer warp is skipped.
+    public void RelockCursor()
+    {
+        if (lockCursor) SetCursorLocked(true);
+    }
+
     void Update()
     {
         Mouse mouse = Mouse.current;
         if (mouse == null) return;
 
+        // The pause menu owns Escape and the cursor while it exists, or the two would fight:
+        // one locking the cursor on the same key press the other unlocks it.
+        if (PauseMenu.IsPaused) return;
+
         if (lockCursor)
         {
             Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) SetCursorLocked(false);
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && !PauseMenu.Present) SetCursorLocked(false);
 
             if (Cursor.lockState != CursorLockMode.Locked)
             {
