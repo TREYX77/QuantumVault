@@ -2147,6 +2147,7 @@ GameObject:
   - component: {fileID: 1162490506}
   - component: {fileID: 1162490507}
   - component: {fileID: 1162490508}
+  - component: {fileID: 1162490509}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -2438,6 +2439,22 @@ MonoBehaviour:
   flashlightItem: {fileID: 1441718118}
   entanglementItem: {fileID: 1809475107}
   waveParticleItem: {fileID: 1132937391}
+--- !u!114 &1162490509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1162490498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fc02515f0998f641a1e7b2f59309628, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ToggleHUD
+  HideHUD: {fileID: 244702627}
+  HideMap: {fileID: 1495417794}
+  HUDKey: 104
+  MapKey: 109
 --- !u!1 &1342576489
 GameObject:
   m_ObjectHideFlags: 0
