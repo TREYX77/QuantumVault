@@ -1,14 +1,13 @@
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class PortalRequirement : MonoBehaviour
 {
-    [SerializeField] private PressurePlate[] requiredPlates;
+    [SerializeField] private BoxPressurePlate[] requiredPlates;
     [SerializeField] private Portal portal;
 
     private void Update()
     {
-        foreach (PressurePlate plate in requiredPlates)
+        foreach (BoxPressurePlate plate in requiredPlates)
         {
             if (!plate.IsPressed)
             {

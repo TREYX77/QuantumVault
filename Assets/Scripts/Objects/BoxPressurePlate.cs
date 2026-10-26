@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PressurePlate : MonoBehaviour
+public class BoxPressurePlate : MonoBehaviour
 {
     public bool IsPressed { get; private set; }
 

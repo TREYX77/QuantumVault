@@ -1,7 +1,7 @@
 
 using UnityEngine;
 
-public class PauseMenu : MonoBehaviour
+public class MusicPauseMenu : MonoBehaviour
 {
     [Header("Pause UI")]
     public GameObject pausePanel;
