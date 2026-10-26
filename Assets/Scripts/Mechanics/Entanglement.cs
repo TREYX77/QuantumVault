@@ -29,8 +29,13 @@ public class EntanglementGroup
     private bool hasAgreed;
     private float lastSolvedTime = -1f;
     private Entanglement driver;
+    private Entanglement lastHeld;
 
     private const float DriverTakeover = 2f;
+
+    // Steps a partner must lag in a row before it holds a carried prop back. A crate pressed
+    // into the floor dips for single steps, and reacting to those yanked it out of the hand.
+    private const int StuckAfterSteps = 3;
 
     private const float TakeoverMargin = 0.05f;
 
@@ -45,6 +50,23 @@ public class EntanglementGroup
     public void Remove(Entanglement member)
     {
         members.Remove(member);
+    }
+
+    // Forgets the shared pose so the next step agrees on wherever the members now are. For a
+    // checkpoint that has just put them all back, which would otherwise read as a huge jump.
+    public void Resync()
+    {
+        hasAgreed = false;
+        driver = null;
+        lastHeld = null;
+
+        foreach (Entanglement member in members)
+        {
+            if (member == null) continue;
+
+            member.Stuck = false;
+            member.StrainSteps = 0;
+        }
     }
 
     public void Solve(float physicsTime)
@@ -65,6 +87,19 @@ public class EntanglementGroup
             if (members.Count == 1) return;
         }
 
+        // The carried prop always leads. Otherwise the others would pin it to the shared pose
+        // before it moved far enough to take over, and the grab would do nothing.
+        foreach (Entanglement member in members)
+        {
+            if (!member.IsHeld) continue;
+
+            driver = member;
+            SolveHeld(member);
+            return;
+        }
+
+        lastHeld = null;
+
         Entanglement best = null;
         float largest = 0f;
         float driverDifference = 0f;
@@ -82,7 +117,6 @@ public class EntanglementGroup
             }
         }
 
-
         bool rivalTakesOver = best != driver
                            && largest > driverDifference * DriverTakeover
                            && largest > TakeoverMargin;
@@ -99,30 +133,31 @@ public class EntanglementGroup
 
         if (largest < driver.MoveThreshold)
         {
-
             foreach (Entanglement member in members)
             {
                 if (member != driver) member.DriveTo(agreed);
             }
 
+            // At rest nothing is pushing against anything, so a carried prop that stopped at a
+            // block must not stay stuck once its partner settles.
+            driver.SetBlocked(false);
             return;
         }
 
         EntanglementPose candidate = driver.CurrentOffset;
 
-
         bool strained = false;
 
         foreach (Entanglement member in members)
         {
-            if (member == driver) continue;
-
-            if (member.CommandResidual > member.LinkTolerance) strained = true;
+            if (member != driver && member.IsStrained) strained = true;
         }
 
         if (strained)
         {
-            driver.StopMotion();
+            // Held at the last pose everyone reached. Zeroing velocity instead let gravity rebuild
+            // a little speed each step, so a prop that fell off a ledge sank in slow motion.
+            driver.DriveTo(agreed);
             driver.SetBlocked(true);
 
             foreach (Entanglement member in members)
@@ -140,6 +175,47 @@ public class EntanglementGroup
 
         agreed = candidate;
         driver.SetBlocked(false);
+    }
+
+    // The hand moves the carried prop and the others follow. A partner that cannot keep up
+    // limits the prop to where that partner got, but only in the direction it is stuck, so the
+    // prop can still slide along or pull back from the obstacle instead of freezing.
+    private void SolveHeld(Entanglement held)
+    {
+        EntanglementPose candidate = held.CurrentOffset;
+        bool blocked = false;
+
+        // A fresh grab starts free, whatever the last one ended on.
+        if (held != lastHeld)
+        {
+            lastHeld = held;
+
+            foreach (Entanglement member in members)
+            {
+                member.Stuck = false;
+                member.StrainSteps = 0;
+            }
+        }
+
+        foreach (Entanglement member in members)
+        {
+            if (member == held) continue;
+
+            // Judged on last step's command, before this step's replaces it.
+            member.StrainSteps = member.IsStrained ? member.StrainSteps + 1 : 0;
+
+            if (member.StrainSteps >= StuckAfterSteps) member.Stuck = true;
+            if (member.Stuck) member.Stuck = held.HoldBack(member);
+            if (member.Stuck) blocked = true;
+
+            // Always the hand's pose, so a stuck partner keeps pressing and stays stuck for as
+            // long as the hand pushes, rather than flickering free every other step.
+            member.DriveTo(candidate);
+        }
+
+        // Kept in step while carried, so letting go never snaps the prop back to an old pose.
+        agreed = candidate;
+        held.SetBlocked(blocked);
     }
 }
 
@@ -177,6 +253,10 @@ public class Entanglement : MonoBehaviour
              "Small is rigid, large is forgiving.")]
     [SerializeField] private float linkTolerance = 0.08f;
 
+    [Tooltip("How far a follower's rotation may fall behind, in degrees, before the link counts " +
+             "as blocked. Without it a partner wedged against the floor fights a rolling prop.")]
+    [SerializeField] private float rotationTolerance = 10f;
+
     [Tooltip("Offset changes smaller than this are treated as noise.")]
     [SerializeField] private float moveThreshold = 0.001f;
 
@@ -197,12 +277,50 @@ public class Entanglement : MonoBehaviour
     private Vector3 startScale;
 
     private Vector3 commandedPosition;
+    private Quaternion commandedRotation = Quaternion.identity;
     private bool hasCommand;
+    private float commandTime;
+
+    // How fast a partner that cannot follow may draw a carried prop back. Gentle, so the
+    // correction never pulls the prop out of the player's hand.
+    private const float HoldBackSpeed = 4f;
+
+    // Everything bound to this object, itself included. Empty while it is not in a link.
+    public IReadOnlyList<Entanglement> Linked =>
+        group != null ? group.Members : (IReadOnlyList<Entanglement>)System.Array.Empty<Entanglement>();
+
+    public void Resync()
+    {
+        group?.Resync();
+    }
 
     public float MoveThreshold => moveThreshold;
     public float LinkTolerance => linkTolerance;
     public Rigidbody Body => body;
     public bool IsBlocked { get; private set; }
+
+    // Set by GrabInteract while the player carries this prop, so it leads the link.
+    public bool IsHeld { get; set; }
+
+    // Latched by the group while this partner cannot follow a carried prop.
+    public bool Stuck { get; set; }
+
+    // How many steps in a row this partner has lagged behind a carried prop.
+    public int StrainSteps { get; set; }
+
+    // Fell behind its last command in place or in angle, so something is stopping it.
+    public bool IsStrained
+    {
+        get
+        {
+            // Only last step's command counts. An old one left over from a pose the link has
+            // since given up on would read as lag the moment a new grab started.
+            if (!hasCommand || Time.fixedTime - commandTime > Time.fixedDeltaTime * 1.5f) return false;
+            if (CommandResidual > linkTolerance) return true;
+
+            return syncRotation && Quaternion.Angle(transform.rotation, commandedRotation) > rotationTolerance;
+        }
+    }
 
     private Vector3 AnchorPosition => anchor != null ? anchor.position : startPosition;
     private Quaternion AnchorRotation => anchor != null ? anchor.rotation : startRotation;
@@ -273,6 +391,8 @@ public class Entanglement : MonoBehaviour
         Quaternion targetRotation = AnchorRotation * offset.rotation;
 
         commandedPosition = targetPosition;
+        commandedRotation = targetRotation;
+        commandTime = Time.fixedTime;
         hasCommand = true;
 
         if (body == null)
@@ -301,12 +421,56 @@ public class Entanglement : MonoBehaviour
         if (syncRotation) DriveRotation(targetRotation);
     }
 
-    public void StopMotion()
+    // Called on the carried prop after the hand set its velocity. Strips only the motion that
+    // would carry it further from where the partner got, and draws it back to within half the
+    // tolerance, so it stops at the obstacle but stays free to slide or back away. Returns
+    // whether the partner still holds it back.
+    public bool HoldBack(Entanglement partner)
     {
-        if (body == null) return;
+        if (body == null) return false;
 
-        body.linearVelocity = Vector3.zero;
-        body.angularVelocity = Vector3.zero;
+        EntanglementPose reached = partner.CurrentOffset;
+        bool pushing = false;
+
+        if (syncPosition)
+        {
+            Vector3 gap = body.position - (AnchorPosition + AnchorRotation * reached.position);
+            float distance = gap.magnitude;
+
+            if (distance > 0.0001f)
+            {
+                Vector3 away = gap / distance;
+                Vector3 velocity = body.linearVelocity;
+                float outward = Vector3.Dot(velocity, away);
+
+                if (outward > 0f)
+                {
+                    velocity -= away * outward;
+                    pushing = true;
+                }
+
+                float excess = distance - linkTolerance * 0.5f;
+
+                if (excess > 0f) velocity -= away * Mathf.Min(excess / Time.fixedDeltaTime, HoldBackSpeed);
+
+                body.linearVelocity = velocity;
+            }
+        }
+
+        if (syncRotation)
+        {
+            Quaternion reachedRotation = AnchorRotation * reached.rotation;
+
+            // A hard stop: the prop turns no further than the partner managed.
+            if (Quaternion.Angle(body.rotation, reachedRotation) > rotationTolerance * 0.5f)
+            {
+                DriveRotation(Quaternion.RotateTowards(reachedRotation, body.rotation, rotationTolerance * 0.5f));
+                pushing = true;
+            }
+        }
+
+        // Free again once the hand eases off and the partner has caught up.
+        return pushing || partner.IsStrained;
     }
 
     public void SetBlocked(bool blocked)

@@ -45,6 +45,13 @@ public class GUIstats : MonoBehaviour
     private readonly Color gainedSpeedColor = new Color(1f, 0.64f, 0.25f);
     private readonly Color referenceColor = new Color(1f, 1f, 1f, 0.25f);
 
+    // For the console's stats command.
+    public bool Visible
+    {
+        get => visible;
+        set => visible = value;
+    }
+
     private float[] history;
     private int historyHead;
     private float peakSpeed;
@@ -84,7 +91,7 @@ public class GUIstats : MonoBehaviour
     {
         Keyboard keyboard = Keyboard.current;
 
-        if (keyboard != null && keyboard[toggleKey].wasPressedThisFrame) visible = !visible;
+        if (keyboard != null && !DevConsole.BlocksInput && keyboard[toggleKey].wasPressedThisFrame) visible = !visible;
 
         if ((movement == null || grab == null) && Time.unscaledTime >= nextSearchTime)
         {

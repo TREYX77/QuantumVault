@@ -116,7 +116,8 @@ public class PhotonEmitter : MonoBehaviour
     {
         Keyboard keyboard = Keyboard.current;
 
-        if (keyboard == null || toggleKey == Key.None) return;
+        // Typing a q into the console must not toggle every laser.
+        if (keyboard == null || toggleKey == Key.None || DevConsole.BlocksInput) return;
 
         if (toggleMode)
         {

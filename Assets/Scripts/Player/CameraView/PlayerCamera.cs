@@ -57,7 +57,7 @@ public class PlayerCamera : MonoBehaviour
 
         // The pause menu owns Escape and the cursor while it exists, or the two would fight:
         // one locking the cursor on the same key press the other unlocks it.
-        if (PauseMenu.IsPaused) return;
+        if (PauseMenu.IsPaused || DevConsole.BlocksInput) return;
 
         if (lockCursor)
         {

@@ -100,6 +100,7 @@ public class GrabInteract : MonoBehaviour
 
     private ObjectPhysics held;
     private Rigidbody heldBody;
+    private Entanglement heldLink;
     private Quaternion holdRotationOffset;
     private bool rotating;
     private float nextResolveTime;
@@ -129,7 +130,13 @@ public class GrabInteract : MonoBehaviour
     private HoldOrientation ActiveOrientation =>
         held != null && held.OverridesOrientation ? held.Orientation : defaultOrientation;
 
-    private float MassResponse => 1f / (1f + (heldBody != null ? heldBody.mass : 0f) * massInfluence);
+    // Strength divides how much mass drags the carry; max strength makes every prop weightless.
+    private float MassResponse => DevCheats.MaxStrength
+        ? 1f
+        : 1f / (1f + (heldBody != null ? heldBody.mass : 0f) * massInfluence / Mathf.Max(0.01f, DevCheats.Strength));
+
+    // Max strength throws three times as hard.
+    private const float MaxStrengthThrowScale = 3f;
 
     private Quaternion ViewRotation
     {
@@ -183,7 +190,7 @@ public class GrabInteract : MonoBehaviour
 
         // Ignored rather than disabled: disabling releases the carried prop, and clicking a
         // menu button would otherwise count as a throw.
-        if (PauseMenu.IsPaused) return;
+        if (PauseMenu.IsPaused || DevConsole.BlocksInput) return;
 
         Mouse mouse = Mouse.current;
 
@@ -480,6 +487,10 @@ public class GrabInteract : MonoBehaviour
         held = target;
         heldBody = target.Body;
 
+        // An entangled prop must lead its link while carried, or its partners pin it in place.
+        heldLink = target.GetComponent<Entanglement>();
+        if (heldLink != null) heldLink.IsHeld = true;
+
         cachedUseGravity = heldBody.useGravity;
         cachedInterpolation = heldBody.interpolation;
         cachedCollisionMode = heldBody.collisionDetectionMode;
@@ -538,7 +549,8 @@ public class GrabInteract : MonoBehaviour
         if (!IsHolding || viewCamera == null) return;
 
         Rigidbody body = heldBody;
-        float impulse = held.ThrowImpulse * Mathf.Max(0f, chargeScale);
+        float strength = DevCheats.MaxStrength ? MaxStrengthThrowScale : DevCheats.Strength;
+        float impulse = held.ThrowImpulse * Mathf.Max(0f, chargeScale) * strength;
         Vector3 direction = viewCamera.transform.forward;
 
         Release();
@@ -559,6 +571,9 @@ public class GrabInteract : MonoBehaviour
 
     private void ClearHeldState()
     {
+        if (heldLink != null) heldLink.IsHeld = false;
+
+        heldLink = null;
         held = null;
         heldBody = null;
         charging = false;

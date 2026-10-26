@@ -134,24 +134,12 @@ public class CheckpointManager : MonoBehaviour
             resettable.RestoreState();
         }
 
-        foreach (PropState state in props)
-        {
-            Rigidbody body = state.Body;
-
-            if (body == null) continue;
-
-            body.position = state.Position;
-            body.rotation = state.Rotation;
-            body.transform.SetPositionAndRotation(state.Position, state.Rotation);
-
-            if (!body.isKinematic)
-            {
-                body.linearVelocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
-            }
-        }
+        foreach (PropState state in props) Restore(state);
 
         Physics.SyncTransforms();
+
+        // Every prop just jumped back, so each link agrees on the restored poses afresh.
+        foreach (Entanglement link in FindObjectsByType<Entanglement>()) link.Resync();
 
         if (player != null)
         {
@@ -161,6 +149,88 @@ public class CheckpointManager : MonoBehaviour
 
         Debug.Log($"Reset to checkpoint: {(Current != null ? Current.RoomName : "level start")}");
         ResetPerformed?.Invoke();
+    }
+
+    // Puts one prop back where it was at the last checkpoint and leaves the rest of the level
+    // alone, so a box knocked into a pit returns without undoing the player's progress.
+    // False when the prop was not in the snapshot, such as one spawned after the checkpoint.
+    public bool ResetProp(Rigidbody body)
+    {
+        if (body == null || !TryGetState(body, out PropState state)) return false;
+
+        // An entangled prop goes back with its whole link. Alone, the link would read the reset
+        // as the prop jumping away and drag it straight back to its partners.
+        Entanglement link = body.GetComponent<Entanglement>();
+        bool linked = link != null && link.Linked.Count > 1;
+
+        // A prop carried into the pit must leave the hand, or the grab drags it straight back.
+        GrabInteract grab = FindAnyObjectByType<GrabInteract>();
+
+        if (grab != null && grab.IsHolding && grab.Held != null)
+        {
+            Entanglement heldLink = grab.Held.GetComponent<Entanglement>();
+
+            if (grab.Held.Body == body || (linked && heldLink != null && SameLink(link, heldLink))) grab.Release();
+        }
+
+        Restore(state);
+
+        if (linked)
+        {
+            foreach (Entanglement partner in link.Linked)
+            {
+                if (partner == null || partner == link || partner.Body == null) continue;
+
+                if (TryGetState(partner.Body, out PropState partnerState)) Restore(partnerState);
+            }
+        }
+
+        Physics.SyncTransforms();
+
+        if (linked) link.Resync();
+
+        return true;
+    }
+
+    private static bool SameLink(Entanglement link, Entanglement other)
+    {
+        foreach (Entanglement member in link.Linked)
+        {
+            if (member == other) return true;
+        }
+
+        return false;
+    }
+
+    private bool TryGetState(Rigidbody body, out PropState found)
+    {
+        foreach (PropState state in props)
+        {
+            if (state.Body != body) continue;
+
+            found = state;
+            return true;
+        }
+
+        found = default;
+        return false;
+    }
+
+    private static void Restore(PropState state)
+    {
+        Rigidbody body = state.Body;
+
+        if (body == null) return;
+
+        body.position = state.Position;
+        body.rotation = state.Rotation;
+        body.transform.SetPositionAndRotation(state.Position, state.Rotation);
+
+        if (!body.isKinematic)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
     }
 
     private void TakeSnapshot()

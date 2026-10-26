@@ -83,7 +83,8 @@ public class PauseMenu : MonoBehaviour
     {
         Keyboard keyboard = Keyboard.current;
 
-        if (keyboard == null || !keyboard[toggleKey].wasPressedThisFrame) return;
+        // Escape closes the console first; the same press must not also open this menu.
+        if (keyboard == null || !keyboard[toggleKey].wasPressedThisFrame || DevConsole.BlocksInput) return;
 
         if (IsPaused) Resume();
         else if (!SceneTransition.IsTransitioning) Pause();

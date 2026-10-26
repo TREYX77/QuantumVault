@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: b6bc0f1414c2f9f4cb45eff128907e7f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 210177
+  packageName: "Super Simple Sky \u2013 Dynamic Procedural Skybox Shader, Day/Night Cycle, Sun & Moon"
+  packageVersion: 5.1.0
+  assetPath: Packages/com.occasoftware.super-simple-skybox/Runtime/SkyObjects/SunStatic.cs
+  uploadId: 976286

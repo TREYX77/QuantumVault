@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 840ced298170c424883a7c2c9735c545
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 210177
+  packageName: "Super Simple Sky \u2013 Dynamic Procedural Skybox Shader, Day/Night Cycle, Sun & Moon"
+  packageVersion: 5.1.0
+  assetPath: Packages/com.occasoftware.super-simple-skybox/Runtime/XR/VRSkybox.cs
+  uploadId: 976286

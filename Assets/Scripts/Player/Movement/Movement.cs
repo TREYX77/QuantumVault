@@ -85,7 +85,16 @@ public class Movement : MonoBehaviour
              "This is the angle a head and spine are expected to cover on their own.")]
     [SerializeField] private float maxLookOffset = 70f;
 
+    // Noclip flight speed relative to walk speed, and the extra with Shift held.
+    private const float FlySpeedScale = 2f;
+    private const float FlySprintScale = 3f;
+
     private CharacterController controller;
+    private Collider[] ownColliders;
+    private bool[] collidersWereEnabled;
+    private Rigidbody body;
+    private bool bodyWasKinematic;
+    private bool flying;
     private Vector3 horizontalVelocity;
     private float verticalVelocity;
     private float lastGroundedTime = float.NegativeInfinity;
@@ -100,13 +109,21 @@ public class Movement : MonoBehaviour
     public float SpeedMultiplier { get; set; } = 1f;
     public float JumpMultiplier { get; set; } = 1f;
     public bool ScrollJumpEnabled { get; set; } = true;
-    public float BaseSpeed => moveSpeed * SpeedMultiplier;
+    public float BaseSpeed => moveSpeed * SpeedMultiplier * DevCheats.Speed;
+
+    private float Gravity => gravity * DevCheats.Gravity;
 
     void Awake()
     {
         controller = GetComponent<CharacterController>();
+        body = GetComponent<Rigidbody>();
 
         if (playerCamera == null) playerCamera = GetComponentInChildren<PlayerCamera>();
+    }
+
+    void OnDisable()
+    {
+        if (flying) StopFlying();
     }
 
     // Moves the player so their feet stand on the given point, facing the given yaw, with all
@@ -134,7 +151,19 @@ public class Movement : MonoBehaviour
         if (keyboard == null) return;
 
         // A jump pressed while paused must not fire the moment the game resumes.
-        if (PauseMenu.IsPaused) return;
+        if (PauseMenu.IsPaused || DevConsole.BlocksInput) return;
+
+        if (DevCheats.NoClip != flying)
+        {
+            if (DevCheats.NoClip) StartFlying();
+            else StopFlying();
+        }
+
+        if (flying)
+        {
+            Fly(keyboard);
+            return;
+        }
 
         if (JumpPressedThisFrame(keyboard)) lastJumpPressedTime = Time.time;
 
@@ -204,7 +233,7 @@ public class Movement : MonoBehaviour
 
         Vector3 wish = right * input.x + forward * input.y;
 
-        float carrySpeed = moveSpeed * SpeedMultiplier;
+        float carrySpeed = BaseSpeed;
 
         if (mode == MovementMode.Simple)
         {
@@ -295,7 +324,10 @@ public class Movement : MonoBehaviour
         if (!hasGround || !wantsJump) return false;
 
         // Horizontal is left alone, so momentum carries through the jump.
-        verticalVelocity = Mathf.Sqrt(jumpHeight * JumpMultiplier * -2f * gravity);
+        // With gravity off the formula gives no lift, so the jump uses normal gravity's launch speed.
+        float launchGravity = Gravity < -0.01f ? Gravity : gravity;
+
+        verticalVelocity = Mathf.Sqrt(jumpHeight * JumpMultiplier * DevCheats.Jump * -2f * launchGravity);
 
         lastGroundedTime = float.NegativeInfinity;
         lastJumpPressedTime = float.NegativeInfinity;
@@ -315,7 +347,71 @@ public class Movement : MonoBehaviour
             verticalVelocity = 0f;
         }
 
-        verticalVelocity += gravity * Time.deltaTime;
+        verticalVelocity += Gravity * Time.deltaTime;
+    }
+
+    // Noclip: every collider off and the body kinematic, so walls, floors and reset volumes all
+    // let the player through. Remembers what was on, so landing puts it back exactly.
+    private void StartFlying()
+    {
+        flying = true;
+        ownColliders = GetComponentsInChildren<Collider>();
+        collidersWereEnabled = new bool[ownColliders.Length];
+
+        for (int i = 0; i < ownColliders.Length; i++)
+        {
+            collidersWereEnabled[i] = ownColliders[i].enabled;
+            ownColliders[i].enabled = false;
+        }
+
+        if (body != null)
+        {
+            bodyWasKinematic = body.isKinematic;
+            body.isKinematic = true;
+        }
+
+        horizontalVelocity = Vector3.zero;
+        verticalVelocity = 0f;
+    }
+
+    private void StopFlying()
+    {
+        flying = false;
+
+        for (int i = 0; ownColliders != null && i < ownColliders.Length; i++)
+        {
+            if (ownColliders[i] != null) ownColliders[i].enabled = collidersWereEnabled[i];
+        }
+
+        if (body != null)
+        {
+            body.isKinematic = bodyWasKinematic;
+
+            if (!body.isKinematic) body.linearVelocity = Vector3.zero;
+        }
+
+        horizontalVelocity = Vector3.zero;
+        verticalVelocity = 0f;
+    }
+
+    // Straight along the full view, pitch included, the way tcl flies in Skyrim.
+    private void Fly(Keyboard keyboard)
+    {
+        Vector2 input = ReadMoveInput(keyboard);
+
+        Quaternion view = playerCamera != null ? playerCamera.LookRotation : transform.rotation;
+        Vector3 direction = view * new Vector3(input.x, 0f, input.y);
+
+        if (keyboard.spaceKey.isPressed) direction += Vector3.up;
+        if (keyboard.leftCtrlKey.isPressed || keyboard.cKey.isPressed) direction += Vector3.down;
+
+        float speed = moveSpeed * DevCheats.Speed * FlySpeedScale;
+
+        if (keyboard.leftShiftKey.isPressed) speed *= FlySprintScale;
+
+        UpdateBodyRotation(input.sqrMagnitude > 0.01f);
+
+        transform.position += Vector3.ClampMagnitude(direction, 1f) * speed * Time.deltaTime;
     }
 
     // A CharacterController walks through loose props without moving them.

@@ -52,7 +52,7 @@ public class SceneTransitionTrigger : MonoBehaviour
 
     void Update()
     {
-        if (!AwaitingKeyPress || Keyboard.current == null) return;
+        if (!AwaitingKeyPress || Keyboard.current == null || DevConsole.BlocksInput) return;
 
         if (Keyboard.current[interactKey].wasPressedThisFrame) Fire();
     }
