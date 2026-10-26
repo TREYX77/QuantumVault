@@ -124,7 +124,7 @@ MonoBehaviour:
   quitButton: {fileID: 79813897761699493}
   toggleKey: 60
   mainMenuScene: MainMenu
-  fadeDuration: 0.4
+  fadeDuration: 0.46
 --- !u!1 &439700604723104235
 GameObject:
   m_ObjectHideFlags: 0
