@@ -1,76 +1,77 @@
 
 using UnityEngine;
 
+[AddComponentMenu("Audio/Music Pause Menu")]
+[DisallowMultipleComponent]
 public class MusicPauseMenu : MonoBehaviour
 {
-    [Header("Pause UI")]
-    public GameObject pausePanel;
-
     [Header("Music")]
-    public AudioSource levelMusic;
-    public AudioSource pauseMusic;
+    [SerializeField] private AudioSource levelMusic;
+    [SerializeField] private AudioSource pauseMusic;
 
-    private bool isPaused = false;
+    private bool wasPaused;
 
-    void Start()
+    private void Start()
     {
-        pausePanel.SetActive(false);
-        Time.timeScale = 1f;
+        // The PauseMenu script controls the actual pause state.
+        wasPaused = PauseMenu.IsPaused;
 
         if (pauseMusic != null)
+        {
             pauseMusic.Stop();
+            pauseMusic.ignoreListenerPause = true;
+        }
 
-        if (levelMusic != null && !levelMusic.isPlaying)
-            levelMusic.Play();
+        if (levelMusic != null)
+        {
+            levelMusic.ignoreListenerPause = true;
+
+            if (!levelMusic.isPlaying)
+                levelMusic.Play();
+        }
+
+        UpdateMusic(PauseMenu.IsPaused);
     }
 
-    void Update()
+    private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        // Detect when the existing PauseMenu opens or closes.
+        bool isPaused = PauseMenu.IsPaused;
+
+        if (isPaused == wasPaused)
+            return;
+
+        wasPaused = isPaused;
+        UpdateMusic(isPaused);
+    }
+
+    private void UpdateMusic(bool isPaused)
+    {
+        if (isPaused)
         {
-            if (isPaused)
-                ResumeGame();
-            else
-                PauseGame();
+            if (levelMusic != null)
+                levelMusic.Pause();
+
+            if (pauseMusic != null && !pauseMusic.isPlaying)
+                pauseMusic.Play();
+        }
+        else
+        {
+            if (pauseMusic != null)
+                pauseMusic.Stop();
+
+            if (levelMusic != null)
+                levelMusic.UnPause();
         }
     }
 
-    public void PauseGame()
+    private void OnDisable()
     {
-        if (isPaused) return;
-
-        isPaused = true;
-        pausePanel.SetActive(true);
-        Time.timeScale = 0f;
-
-        if (levelMusic != null)
-            levelMusic.Pause();
-
-        if (pauseMusic != null)
-            pauseMusic.Play();
-    }
-
-    public void ResumeGame()
-    {
-        if (!isPaused) return;
-
-        isPaused = false;
-        pausePanel.SetActive(false);
-        Time.timeScale = 1f;
-
+        // Avoid leaving music paused if this component is disabled.
         if (pauseMusic != null)
             pauseMusic.Stop();
 
-        if (levelMusic != null)
+        if (levelMusic != null && PauseMenu.IsPaused == false)
             levelMusic.UnPause();
     }
-
-    public void RestartGame()
-    {
-        Time.timeScale = 1f;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(
-            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
-        );
-    }
 }
-
