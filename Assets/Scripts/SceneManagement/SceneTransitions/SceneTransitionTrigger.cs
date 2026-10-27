@@ -26,6 +26,7 @@ public class SceneTransitionTrigger : MonoBehaviour
     private Collider trigger;
     private bool occupied;
     private bool fired;
+    private bool warnedNoDestination;
 
     public bool AwaitingKeyPress => occupied && requireKeyPress && !fired;
 
@@ -81,6 +82,18 @@ public class SceneTransitionTrigger : MonoBehaviour
     public void Fire()
     {
         if (fired && onlyOnce) return;
+
+        // A level whose next scene is not built yet: say so once rather than fade into an error.
+        if (string.IsNullOrEmpty(transition.sceneName))
+        {
+            if (!warnedNoDestination)
+            {
+                warnedNoDestination = true;
+                Debug.LogWarning($"'{name}' has no destination scene set yet, so it does nothing.", this);
+            }
+
+            return;
+        }
 
         fired = true;
         SceneTransition.Load(transition);

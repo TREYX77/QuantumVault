@@ -89,6 +89,11 @@ public class SlitGate : MonoBehaviour
     public bool IsObserved => Time.time - lastObservedTime <= observationHoldTime;
     public int SlitCount => slitCount;
 
+    // Where the last beam to light these slits came from, so a wall can throw each slit's band
+    // along the line the photons actually travel. Only set by emitters that pass it in.
+    public Vector3 BeamOrigin { get; private set; }
+    public bool HasBeamOrigin { get; private set; }
+
     // What a detector or the beam should aim at, rather than the pivot.
     public Vector3 AimPoint => GateBounds.center;
 
@@ -130,6 +135,14 @@ public class SlitGate : MonoBehaviour
     public void Illuminate()
     {
         lastIlluminatedTime = Time.time;
+    }
+
+    // The same, from a known source.
+    public void Illuminate(Vector3 origin)
+    {
+        BeamOrigin = origin;
+        HasBeamOrigin = true;
+        Illuminate();
     }
 
     // Called by a WhichPathDetector every frame it is aimed at these slits. Knowing which

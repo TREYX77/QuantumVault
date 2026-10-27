@@ -118,6 +118,7 @@ public class GrabInteract : MonoBehaviour
 
     public bool IsHolding => held != null;
     public ObjectPhysics Held => held;
+    public Key GrabKey => grabKey;
     public ObjectPhysics Aimed { get; private set; }
     public float ChargeNormalized => charging ? NormalizedCharge : 0f;
     public float HoldDistance => currentHoldDistance;
