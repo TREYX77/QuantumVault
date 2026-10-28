@@ -371,13 +371,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1569619602798643468, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
+      propertyPath: bodyTurn
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7226375084624439564, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
       propertyPath: m_LocalPosition.x
       value: -76.68
       objectReference: {fileID: 0}
     - target: {fileID: 7226375084624439564, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.786
+      value: 0.706
       objectReference: {fileID: 0}
     - target: {fileID: 7226375084624439564, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
       propertyPath: m_LocalPosition.z
@@ -441,7 +445,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimatorDriver
   animator: {fileID: 9171651847207240231}
+  playerCamera: {fileID: 0}
   runThreshold: 0.1
+  lookBodyWeight: 0.3
+  lookHeadWeight: 0.8
+  lookClamp: 0.5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
