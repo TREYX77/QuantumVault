@@ -12,6 +12,11 @@ public class PlayerCamera : MonoBehaviour
     [Tooltip("Mouse movement larger than this in a single frame is ignored as a pointer warp.")]
     [SerializeField] private float maxDeltaPerFrame = 400f;
 
+    [Header("Follow")]
+    [Tooltip("Optional. The view is placed here every frame, such as an eye point on a character's " +
+             "head bone, so the head can never move in front of the camera.")]
+    [SerializeField] private Transform followPoint;
+
     [Header("Cursor")]
     [SerializeField] private bool lockCursor = true;
 
@@ -91,8 +96,11 @@ public class PlayerCamera : MonoBehaviour
     }
 
     // World space, after everything moved, so the body cannot feed back in.
+    // LateUpdate runs after the Animator, so a bone follow point is already in its final pose.
     void LateUpdate()
     {
+        if (followPoint != null) transform.position = followPoint.position;
+
         transform.rotation = LookRotation;
     }
 
