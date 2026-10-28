@@ -50,11 +50,15 @@ public class Inventory : MonoBehaviour
 
     private void NewItemSelected()
     {
-        flashlightItem.SetActive(false);
-        entanglementItem.SetActive(false);
-        waveParticleItem.SetActive(false);
+        // A slot can be empty, or lose its object when the player prefab is rebuilt.
+        foreach (GameObject item in itemSetActive.Values)
+        {
+            if (item != null) item.SetActive(false);
+        }
+
+        if (selectedItem < 0 || selectedItem >= inventoryList.Count) return;
 
         GameObject selectedItemObject = itemSetActive[inventoryList[selectedItem]];
-        selectedItemObject.SetActive(true);
+        if (selectedItemObject != null) selectedItemObject.SetActive(true);
     }
 }
