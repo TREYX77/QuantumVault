@@ -375,6 +375,10 @@ PrefabInstance:
       propertyPath: bodyTurn
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4901966626369317178, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
+      propertyPath: minPitch
+      value: -85
+      objectReference: {fileID: 0}
     - target: {fileID: 7226375084624439564, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
       propertyPath: m_LocalPosition.x
       value: -76.68
@@ -419,6 +423,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Louise
       objectReference: {fileID: 0}
+    - target: {fileID: 8914048424792722194, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.833
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -445,11 +453,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimatorDriver
   animator: {fileID: 9171651847207240231}
-  playerCamera: {fileID: 0}
-  runThreshold: 0.1
-  lookBodyWeight: 0.3
-  lookHeadWeight: 0.8
-  lookClamp: 0.5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

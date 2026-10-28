@@ -103,8 +103,10 @@ public class Movement : MonoBehaviour
     public float LookOffset { get; private set; }
 
     public float Speed => horizontalVelocity.magnitude;
+    public float VerticalVelocity => verticalVelocity;
     public Vector3 Velocity => horizontalVelocity + Vector3.up * verticalVelocity;
     public bool IsGrounded { get; private set; }
+    public bool HasMovementInput { get; private set; }
     public bool IsSourceMode => mode == MovementMode.Source;
     public float SpeedMultiplier { get; set; } = 1f;
     public float JumpMultiplier { get; set; } = 1f;
@@ -168,6 +170,7 @@ public class Movement : MonoBehaviour
         if (JumpPressedThisFrame(keyboard)) lastJumpPressedTime = Time.time;
 
         Vector2 input = ReadMoveInput(keyboard);
+        HasMovementInput = input.sqrMagnitude > 0.01f;
 
         IsGrounded = controller.isGrounded;
 
