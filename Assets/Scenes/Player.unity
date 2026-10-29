@@ -373,7 +373,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1569619602798643468, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
       propertyPath: bodyTurn
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4901966626369317178, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
       propertyPath: minPitch
@@ -453,6 +453,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimatorDriver
   animator: {fileID: 9171651847207240231}
+  playerCamera: {fileID: 0}
+  lookBodyWeight: 0.3
+  lookHeadWeight: 0.8
+  lookClamp: 0.5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
