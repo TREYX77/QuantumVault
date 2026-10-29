@@ -366,7 +366,15 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 376209645582450949, guid: 551547a584999af4bb01aa46debd9f3b, type: 3}
+    - target: {fileID: 1569619602798643468, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
+      propertyPath: bodyTurn
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4901966626369317178, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
+      propertyPath: minPitch
+      value: -85
+      objectReference: {fileID: 0}
+    - target: {fileID: 7226375084624439564, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
       propertyPath: m_LocalPosition.x
       value: -76.68
       objectReference: {fileID: 0}
@@ -409,6 +417,10 @@ PrefabInstance:
     - target: {fileID: 1041246313849871295, guid: 551547a584999af4bb01aa46debd9f3b, type: 3}
       propertyPath: m_Name
       value: Louise
+      objectReference: {fileID: 0}
+    - target: {fileID: 8914048424792722194, guid: ad52010a5da03e942ab92e818943f7dc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.833
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

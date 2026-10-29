@@ -1,20 +1,19 @@
 using UnityEngine;
 
-// Feeds Movement state to the Animator. Running plays only while grounded and moving.
+// Feeds Movement state to the Animator.
 // The head and upper spine follow the view, so the body itself only ever turns at the hips.
 [RequireComponent(typeof(Movement))]
 public class PlayerAnimatorDriver : MonoBehaviour
 {
     private static readonly int IsRunningHash = Animator.StringToHash("IsRunning");
+    private static readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
+    private static readonly int VerticalVelocityHash = Animator.StringToHash("VerticalVelocity");
 
     // How far along the view the head aims. Close targets make the eyes visibly cross.
     private const float LookDistance = 10f;
 
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerCamera playerCamera;
-
-    [Tooltip("Horizontal speed (x/z) above which the player counts as moving.")]
-    [SerializeField] private float runThreshold = 0.1f;
 
     [Header("Look")]
     [Tooltip("How much of the look the spine takes on.")]
@@ -41,10 +40,12 @@ public class PlayerAnimatorDriver : MonoBehaviour
     {
         if (animator == null) return;
 
-        // Speed is the horizontal (x/z) magnitude, so any direction or a diagonal counts.
-        bool isRunning = movement.IsGrounded && movement.Speed > runThreshold;
+        animator.SetBool(IsGroundedHash, movement.IsGrounded);
 
+        bool isRunning = movement.IsGrounded && movement.HasMovementInput;
         animator.SetBool(IsRunningHash, isRunning);
+
+        animator.SetFloat(VerticalVelocityHash, movement.VerticalVelocity);
     }
 
     // Needs IK Pass on the controller layer, and only reaches scripts on the Animator's own object.
