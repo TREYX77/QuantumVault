@@ -3281,6 +3281,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Wooden Crate (3)
       objectReference: {fileID: 0}
+    - target: {fileID: 1003893886525460965, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
+      propertyPath: m_TagString
+      value: Box
+      objectReference: {fileID: 0}
     - target: {fileID: 5116656897135582422, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_LocalPosition.x
       value: -8.29
@@ -25111,7 +25115,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PortalSceneTransition
   currentZone: Z1L1
-  destinationScene: Z2L1
+  destinationScene: Eindscherm
 --- !u!1 &1864747773
 GameObject:
   m_ObjectHideFlags: 0
