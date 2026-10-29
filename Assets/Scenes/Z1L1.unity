@@ -10501,6 +10501,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Wooden Crate (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1003893886525460965, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
+      propertyPath: m_TagString
+      value: Box
+      objectReference: {fileID: 0}
     - target: {fileID: 5116656897135582422, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.7030101
@@ -10515,15 +10519,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5116656897135582422, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.26
+      value: -1.383
       objectReference: {fileID: 0}
     - target: {fileID: 5116656897135582422, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 11.56
+      value: 7.372
       objectReference: {fileID: 0}
     - target: {fileID: 5116656897135582422, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 48.475
+      value: 39.041
       objectReference: {fileID: 0}
     - target: {fileID: 5116656897135582422, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_LocalRotation.w
@@ -11751,6 +11755,10 @@ PrefabInstance:
     - target: {fileID: 1003893886525460965, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_Name
       value: Wooden Crate
+      objectReference: {fileID: 0}
+    - target: {fileID: 1003893886525460965, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
+      propertyPath: m_TagString
+      value: Box
       objectReference: {fileID: 0}
     - target: {fileID: 5116656897135582422, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_LocalScale.x
@@ -19824,7 +19832,7 @@ Transform:
   m_GameObject: {fileID: 1507130154}
   serializedVersion: 2
   m_LocalRotation: {x: 0.70323175, y: 0.0040271976, z: -0.0038917232, w: 0.71093863}
-  m_LocalPosition: {x: 2.22, y: 18.526, z: 51.135}
+  m_LocalPosition: {x: 0.78, y: 14.35, z: 41.19}
   m_LocalScale: {x: 4.569871, y: 4.3925214, z: 0.4458578}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -21983,7 +21991,7 @@ AudioSource:
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
@@ -23886,7 +23894,7 @@ AudioSource:
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
@@ -25277,6 +25285,10 @@ PrefabInstance:
     - target: {fileID: 1003893886525460965, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_Name
       value: Wooden Crate (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1003893886525460965, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
+      propertyPath: m_TagString
+      value: Box
       objectReference: {fileID: 0}
     - target: {fileID: 5116656897135582422, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_LocalPosition.x
