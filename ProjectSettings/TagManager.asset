@@ -6,7 +6,6 @@ TagManager:
   tags:
   - Box
   - Ball
-  - Puzzle
   layers:
   - Default
   - TransparentFX
