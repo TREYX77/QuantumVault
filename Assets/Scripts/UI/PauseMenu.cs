@@ -141,6 +141,7 @@ public class PauseMenu : MonoBehaviour
     {
         Resume();
         CheckpointManager.Instance.ResetToCheckpoint();
+        ActivateVoiceInstance.RestartPlaying();
     }
 
     public void RestartLevel()
