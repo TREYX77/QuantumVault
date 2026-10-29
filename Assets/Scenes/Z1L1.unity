@@ -20129,6 +20129,7 @@ MonoBehaviour:
   minPitch: -85
   maxPitch: 85
   maxDeltaPerFrame: 400
+  followPoint: {fileID: 0}
   lockCursor: 1
 --- !u!114 &1512272166
 MonoBehaviour:
@@ -25115,7 +25116,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PortalSceneTransition
   currentZone: Z1L1
-  destinationScene: Eindscherm
+  destinationScene: Z2L1
 --- !u!1 &1864747773
 GameObject:
   m_ObjectHideFlags: 0
