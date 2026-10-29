@@ -21,6 +21,12 @@ EditorBuildSettings:
     path: Assets/Scenes/Z2L1.unity
     guid: 99807d5f6e107654baf103121f81a373
   - enabled: 1
+    path: Assets/Scenes/TestLevel 1.unity
+    guid: 70327805a45059e448d4f2cf3a8e5980
+  - enabled: 1
+    path: Assets/Scenes/Z3L1.unity
+    guid: df914b2edd1ba4e4f9be9c2fefa7b164
+  - enabled: 1
     path: Assets/Scenes/Eindscherm.unity
     guid: e10c0768ec3e57643b960a398745a32f
   m_configObjects:

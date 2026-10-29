@@ -9,14 +9,13 @@ public class Inventory : MonoBehaviour
     public int selectedItem;
 
     [Header("Item Prefabs")]
-
     [SerializeField] GameObject flashlightItem;
     [SerializeField] GameObject entanglementItem;
     [SerializeField] GameObject waveParticleItem;
 
-
     private Dictionary<itemType, GameObject> itemSetActive = new Dictionary<itemType, GameObject>();
-    private float playerReach;
+
+    private GameObject puzzleObject;
 
     private void Start()
     {
@@ -24,13 +23,13 @@ public class Inventory : MonoBehaviour
         itemSetActive.Add(itemType.Entanglement, entanglementItem);
         itemSetActive.Add(itemType.WaveParticle, waveParticleItem);
 
+        puzzleObject = GameObject.FindGameObjectWithTag("Puzzle");
+
         NewItemSelected();
     }
 
-
     void Update()
     {
-       
         if (Input.GetKeyDown(KeyCode.Alpha1) && inventoryList.Count > 0)
         {
             selectedItem = 0;
@@ -60,5 +59,12 @@ public class Inventory : MonoBehaviour
 
         GameObject selectedItemObject = itemSetActive[inventoryList[selectedItem]];
         if (selectedItemObject != null) selectedItemObject.SetActive(true);
+
+        if (puzzleObject != null)
+        {
+            puzzleObject.SetActive(
+                inventoryList[selectedItem] == itemType.Entanglement
+            );
+        }
     }
 }
