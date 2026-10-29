@@ -42,10 +42,11 @@ public class ActivateVoiceInstance : MonoBehaviour
 
     void Awake()
     {
-        BoxCollider box = GetComponent<BoxCollider>();
-
-        if (!box.isTrigger)
+        // Every box on this object is a way in to the same line.
+        foreach (BoxCollider box in GetComponents<BoxCollider>())
         {
+            if (box.isTrigger) continue;
+
             Debug.LogWarning($"ActivateVoiceInstance '{name}' needs its collider set to Is Trigger. Fixing it for this run.", this);
             box.isTrigger = true;
         }
