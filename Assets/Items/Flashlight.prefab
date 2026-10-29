@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 56380074790136924}
   - component: {fileID: 2255881221311085032}
   - component: {fileID: 133216533254123408}
-  - component: {fileID: 5005686040598827601}
   - component: {fileID: 588055195686547759}
   m_Layer: 0
   m_Name: Flashlight
@@ -94,27 +93,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &5005686040598827601
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4906727534809229445}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &588055195686547759
 MonoBehaviour:
   m_ObjectHideFlags: 0
