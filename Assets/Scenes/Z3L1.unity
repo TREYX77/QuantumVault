@@ -2758,7 +2758,7 @@ PrefabInstance:
       objectReference: {fileID: 588992795}
     - target: {fileID: 6618389943952218500, guid: dcdc793041f7afe4baa81eff1765d9dd, type: 3}
       propertyPath: transition.sceneName
-      value: Eindscherm
+      value: CreditScene
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

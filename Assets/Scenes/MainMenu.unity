@@ -459,7 +459,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionButton
   transition:
-    sceneName: Z1L1
+    sceneName: StartScene
     fadeOutDuration: 0.4
     holdDuration: 0.1
     fadeInDuration: 0.4
