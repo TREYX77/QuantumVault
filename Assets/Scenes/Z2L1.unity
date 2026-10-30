@@ -777,7 +777,7 @@ AudioSource:
   m_PlayOnAwake: 1
   m_Volume: 0.05
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
@@ -1838,6 +1838,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -2577457793013729917, guid: 551547a584999af4bb01aa46debd9f3b, type: 3}
+      propertyPath: volume
+      value: 0.332
+      objectReference: {fileID: 0}
     - target: {fileID: 376209645582450949, guid: 551547a584999af4bb01aa46debd9f3b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3.5557115
@@ -6553,7 +6557,7 @@ AudioSource:
   m_PlayOnAwake: 1
   m_Volume: 0.05
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
