@@ -120,8 +120,8 @@ Material:
     - _Cloud_Iterations: 3
     - _Cloud_Lacunarity: 1
     - _Cloudiness: 0.5
-    - _Clouds_Enabled: 1
-    - _Constant_Color_Mode: 0
+    - _Clouds_Enabled: 0
+    - _Constant_Color_Mode: 1
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
@@ -138,8 +138,8 @@ Material:
     - _HorizonSaturationAmount: 0.3
     - _HorizonSaturationFalloff: 3
     - _Metallic: 0
-    - _MoonAngularDiameter: 5
-    - _MoonFalloff: 15
+    - _MoonAngularDiameter: 20
+    - _MoonFalloff: 30
     - _Moon_Enabled: 1
     - _OcclusionStrength: 1
     - _Parallax: 0.005
@@ -169,7 +169,7 @@ Material:
     - _SunFalloff: 2
     - _SunFalloffIntensity: 0.04
     - _SunSkyLightingEnabled: 1
-    - _Sun_Enabled: 1
+    - _Sun_Enabled: 0
     - _SunsetHorizontalFalloff: 0.5
     - _SunsetIntensity: 0.1
     - _SunsetRadialFalloff: 0.2
@@ -188,10 +188,10 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _GroundColor: {r: 0, g: 0, b: 0, a: 0}
-    - _HorizonColorDay: {r: 1, g: 1, b: 1, a: 1}
+    - _HorizonColorDay: {r: 0.08602342, g: 0, b: 0.122641504, a: 1}
     - _HorizonColorNight: {r: 0.08736077, g: 0.07843138, b: 0.1333333, a: 0}
     - _MoonColor: {r: 1.615686, g: 1.74902, b: 1.811765, a: 0}
-    - _SkyColorDay: {r: 1, g: 1, b: 1, a: 0}
+    - _SkyColorDay: {r: 0.0040999614, g: 0, b: 0.122641504, a: 0}
     - _SkyColorNight: {r: 0.1037736, g: 0.01507654, b: 0.1037736, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _Star_Texture_Tint: {r: 1, g: 1, b: 1, a: 0}
