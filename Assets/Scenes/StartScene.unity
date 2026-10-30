@@ -1092,7 +1092,7 @@ PrefabInstance:
     - target: {fileID: 5627383855680133822, guid: 0681f424273ba174891ece0ed2bf7a2b, type: 3}
       propertyPath: voiceline
       value: 
-      objectReference: {fileID: 8300000, guid: cffdae78edf81fc488f593f01042817b, type: 3}
+      objectReference: {fileID: 8300000, guid: c1b50b459191cd14e9cd5757ef4743ec, type: 3}
     - target: {fileID: 5830452259124165406, guid: 0681f424273ba174891ece0ed2bf7a2b, type: 3}
       propertyPath: m_Name
       value: ActivateVoiceInstance
