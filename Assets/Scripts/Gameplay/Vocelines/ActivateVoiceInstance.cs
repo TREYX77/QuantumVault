@@ -1,8 +1,7 @@
-using System;
 using UnityEngine;
 
-// Plays a voiceline when the player walks into the trigger. Dying to a Reset Volume does not
-// touch it, so it plays to the end. Resetting from the pause menu restarts it via RestartPlaying.
+// Plays one voiceline when the player enters the trigger. Starting another voiceline stops
+// the previous one so separate level voicelines cannot overlap.
 [AddComponentMenu("Puzzle/Activate Voice Instance")]
 [RequireComponent(typeof(BoxCollider))]
 [RequireComponent(typeof(AudioSource))]
@@ -12,20 +11,24 @@ public class ActivateVoiceInstance : MonoBehaviour
     [Tooltip("The line to play when the player enters the trigger.")]
     [SerializeField] private AudioClip voiceline;
 
-    [Tooltip("When on, walking back in after the line has finished does not play it again.")]
+    [Tooltip("When enabled, this trigger will not play again after its line has finished.")]
     [SerializeField] private bool playOnlyOnce = true;
+
+    private static ActivateVoiceInstance currentlyPlaying;
 
     private AudioSource source;
     private bool hasPlayed;
 
-    // Called by the pause menu's "Reset to checkpoint". Only a line that is playing restarts,
-    // so a line that already finished does not start up again in a room the player has left.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        currentlyPlaying = null;
+    }
+
+    // Called by the pause menu's "Reset to checkpoint" button.
     public static void RestartPlaying()
     {
-        foreach (ActivateVoiceInstance voice in FindObjectsByType<ActivateVoiceInstance>(FindObjectsSortMode.None))
-        {
-            voice.Restart();
-        }
+        if (currentlyPlaying != null) currentlyPlaying.Restart();
     }
 
     void Reset()
@@ -34,7 +37,6 @@ public class ActivateVoiceInstance : MonoBehaviour
         box.isTrigger = true;
         box.size = new Vector3(4f, 3f, 1f);
 
-        // A voiceline is heard the same everywhere, not from a point in the room.
         AudioSource audio = GetComponent<AudioSource>();
         audio.playOnAwake = false;
         audio.spatialBlend = 0f;
@@ -42,12 +44,14 @@ public class ActivateVoiceInstance : MonoBehaviour
 
     void Awake()
     {
-        // Every box on this object is a way in to the same line.
         foreach (BoxCollider box in GetComponents<BoxCollider>())
         {
             if (box.isTrigger) continue;
 
-            Debug.LogWarning($"ActivateVoiceInstance '{name}' needs its collider set to Is Trigger. Fixing it for this run.", this);
+            Debug.LogWarning(
+                $"ActivateVoiceInstance '{name}' needs its collider set to Is Trigger. Fixing it for this run.",
+                this);
+
             box.isTrigger = true;
         }
 
@@ -57,18 +61,31 @@ public class ActivateVoiceInstance : MonoBehaviour
         source.clip = voiceline;
     }
 
+    void OnDestroy()
+    {
+        if (currentlyPlaying == this) currentlyPlaying = null;
+    }
+
     void OnTriggerEnter(Collider other)
     {
         if (!IsPlayer(other) || voiceline == null) return;
 
-        // A respawn can put the player back inside the trigger. That must not cut off
-        // or restart a line that is still playing.
         if (source.isPlaying) return;
-
         if (playOnlyOnce && hasPlayed) return;
 
+        StopOtherVoiceline();
+
         hasPlayed = true;
+        currentlyPlaying = this;
         source.Play();
+    }
+
+    private void StopOtherVoiceline()
+    {
+        if (currentlyPlaying == null || currentlyPlaying == this) return;
+
+        currentlyPlaying.source.Stop();
+        currentlyPlaying = null;
     }
 
     private void Restart()
@@ -79,10 +96,10 @@ public class ActivateVoiceInstance : MonoBehaviour
         source.Play();
     }
 
-    // Same test as Checkpoint and ResetVolume, so anything that counts as the player there counts here.
     private static bool IsPlayer(Collider other)
     {
-        return other.GetComponentInParent<CharacterController>() != null || other.CompareTag("Player");
+        return other.GetComponentInParent<CharacterController>() != null
+            || other.CompareTag("Player");
     }
 }
 
