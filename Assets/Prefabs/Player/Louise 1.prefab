@@ -1059,7 +1059,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 4c80b5c2bbf6fb142a5de0dac45f03f7, type: 3}
   - {fileID: 8300000, guid: 097fcffcc08c8924e9bf1c583b4b1caf, type: 3}
   autoFootsteps: 1
-  runningState: Running state
+  runningState: Running
   stepsPerCycle: 2
   volume: 1
   pitchVariation: 0.05
