@@ -10603,6 +10603,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Wooden Crate (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1003893886525460965, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
+      propertyPath: m_TagString
+      value: Box
+      objectReference: {fileID: 0}
     - target: {fileID: 5116656897135582422, guid: cd31e0a9be71ecd45aa378cd6f7a4383, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.7030101
@@ -19234,6 +19238,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -2577457793013729917, guid: 551547a584999af4bb01aa46debd9f3b, type: 3}
+      propertyPath: volume
+      value: 0.68
+      objectReference: {fileID: 0}
     - target: {fileID: 376209645582450949, guid: 551547a584999af4bb01aa46debd9f3b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 4.481237
@@ -22188,7 +22196,7 @@ AudioSource:
   m_PlayOnAwake: 1
   m_Volume: 0.05
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
@@ -24201,9 +24209,9 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 8e287e7c854012e44b777ce7ba124306, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.1
+  m_Volume: 0.052
   m_Pitch: 1
-  Loop: 0
+  Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
