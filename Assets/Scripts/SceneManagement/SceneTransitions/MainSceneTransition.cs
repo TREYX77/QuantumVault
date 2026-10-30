@@ -35,6 +35,15 @@ public static class SceneTransition
 
     public static void Load(TransitionSettings settings)
     {
+        // Leaving a level for another scene: keep how long it took, for the end screen.
+        // A restart reloads the same scene and saves nothing; scenes without a HUD timer are skipped.
+        string current = SceneManager.GetActiveScene().name;
+        if (settings != null && !IsTransitioning && settings.sceneName != current
+            && UnityEngine.Object.FindAnyObjectByType<Timer>() != null)
+        {
+            ZoneTimeManager.SaveCurrentTime(current);
+        }
+
         SceneTransitionFade.Instance.Play(settings);
     }
 
