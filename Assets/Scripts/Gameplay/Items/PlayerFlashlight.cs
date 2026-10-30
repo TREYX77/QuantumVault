@@ -147,6 +147,9 @@ public class PlayerFlashlight : MonoBehaviour
         beam.cookie = cookie;
         beam.shadows = shadows;
         beam.shadowNearPlane = shadowNearPlane;
+
+        // Shone at a mirror, the beam throws a reflected spot back into the room.
+        go.AddComponent<MirrorBounceLight>();
     }
 
     // Lens on the light and pointing down the beam. The model's own spot light marks its lens,

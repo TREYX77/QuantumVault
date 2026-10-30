@@ -294,7 +294,8 @@ public class SlitGate : MonoBehaviour
 
         Vector3 eye = viewCamera.transform.position;
 
-        if (!Physics.Linecast(eye, bounds.center, out RaycastHit hit, occluders, QueryTriggerInteraction.Ignore))
+        // Glass is see-through, so a gate behind a window is still looked at.
+        if (!GlassPane.Linecast(eye, bounds.center, occluders, out RaycastHit hit))
         {
             return true;
         }

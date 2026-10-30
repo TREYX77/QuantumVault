@@ -2,8 +2,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 
-// A photon source placed in the world. Its laser runs straight out of the muzzle and lights a
-// slit gate only if it actually hits it. Works on any model: aim a Muzzle child down the barrel.
+// A photon source placed in the world. Its laser runs straight out of the muzzle, bounces off any
+// MirrorSurface, and lights a slit gate only if it actually hits it. Works on any model: aim a
+// Muzzle child down the barrel.
 // Fired from anywhere with its toggle key, or by using it (E), which charges for a moment first so
 // the player has time to look away. While carried it shows a faint aim line that fires nothing.
 [AddComponentMenu("Wave Duality/Photon Emitter")]
@@ -27,7 +28,7 @@ public class PhotonEmitter : MonoBehaviour, IInteractable, IResettable
     [SerializeField] private bool startOn;
 
     [Header("Beam")]
-    [Tooltip("How far the laser reaches when it hits nothing.")]
+    [Tooltip("How far the laser reaches when it hits nothing, counted along every bounce.")]
     [SerializeField] private float range = 60f;
 
     [Tooltip("What stops the laser. It ends on the first of these it meets, so the player or " +
@@ -62,8 +63,9 @@ public class PhotonEmitter : MonoBehaviour, IInteractable, IResettable
     [Tooltip("How see-through the aim line is, against the full laser.")]
     [SerializeField] private float previewAlpha = 0.35f;
 
-    // Shared by every emitter, which is safe because Update never runs two at once.
-    private static readonly RaycastHit[] hits = new RaycastHit[16];
+    // Shared by every emitter, which is safe because Update never runs two at once. The muzzle,
+    // every mirror bounce, then where the laser ends.
+    private static readonly Vector3[] path = new Vector3[MirrorSurface.MaxBounces + 2];
 
     private LineRenderer line;
     private Material lineMaterial;
@@ -132,33 +134,25 @@ public class PhotonEmitter : MonoBehaviour, IInteractable, IResettable
             return;
         }
 
-        Transform from = Muzzle;
-        Vector3 end = from.position + from.forward * range;
+        // Straight along the barrel and off any mirrors, never bent toward a gate: a gate is lit
+        // only if this exact path reaches it first.
+        int points = Trace(out RaycastHit hit, out bool landed);
 
-        // Straight along the barrel, never bent toward a gate: a gate is lit only if this
-        // exact line reaches it first.
-        if (FirstHit(from.position, from.forward, out RaycastHit hit))
-        {
-            end = hit.point;
-            litGate = hit.collider.GetComponentInParent<SlitGate>();
-        }
+        if (landed) litGate = hit.collider.GetComponentInParent<SlitGate>();
 
-        // Refreshed every frame, so the gate's illumination lapses once the laser leaves it.
-        if (litGate != null) litGate.Illuminate(from.position);
+        // Refreshed every frame, so the gate's illumination lapses once the laser leaves it. The
+        // source it is given is where the last leg started, the last mirror rather than the muzzle,
+        // because the wall throws each slit's band along the line the photons arrive on.
+        if (litGate != null) litGate.Illuminate(path[points - 2]);
 
         SetLineLook(laserWidth, laserColor);
-        line.enabled = true;
-        line.SetPosition(0, from.position);
-        line.SetPosition(1, end);
+        DrawPath(points);
     }
 
-    // The same straight line the laser will take, but faint, and it lights nothing.
+    // The same path the laser will take, but faint, and it lights nothing.
     private void DrawPreview()
     {
-        Transform from = Muzzle;
-        Vector3 end = from.position + from.forward * range;
-
-        if (FirstHit(from.position, from.forward, out RaycastHit hit)) end = hit.point;
+        int points = Trace(out _, out _);
 
         // Blinks while charging, so it reads as "about to fire" rather than "aiming".
         float alpha = previewAlpha;
@@ -166,9 +160,24 @@ public class PhotonEmitter : MonoBehaviour, IInteractable, IResettable
         if (IsCharging) alpha *= Mathf.PingPong(Time.time * 6f, 1f) > 0.5f ? 1.6f : 0.4f;
 
         SetLineLook(previewWidth, new Color(laserColor.r, laserColor.g, laserColor.b, Mathf.Clamp01(alpha)));
+        DrawPath(points);
+    }
+
+    // Skipping this emitter's own colliders on the first leg, so it can fire from inside its own
+    // collider or a carried prop's. Same rule as WhichPathDetector.
+    private int Trace(out RaycastHit hit, out bool landed)
+    {
+        Transform from = Muzzle;
+
+        return MirrorSurface.TracePath(from.position, from.forward, range, beamMask, transform, path, out hit, out landed);
+    }
+
+    private void DrawPath(int points)
+    {
         line.enabled = true;
-        line.SetPosition(0, from.position);
-        line.SetPosition(1, end);
+        line.positionCount = points;
+
+        for (int i = 0; i < points; i++) line.SetPosition(i, path[i]);
     }
 
     private void SetLineLook(float width, Color color)
@@ -220,26 +229,6 @@ public class PhotonEmitter : MonoBehaviour, IInteractable, IResettable
         {
             IsOn = keyboard[toggleKey].isPressed;
         }
-    }
-
-    // Nearest hit that is not part of this emitter, so it can fire from inside its own
-    // collider or a carried prop's. Same rule as WhichPathDetector.FirstHit.
-    private bool FirstHit(Vector3 origin, Vector3 direction, out RaycastHit nearest)
-    {
-        nearest = default;
-        float best = float.PositiveInfinity;
-
-        int count = Physics.RaycastNonAlloc(origin, direction, hits, range, beamMask, QueryTriggerInteraction.Ignore);
-
-        for (int i = 0; i < count; i++)
-        {
-            if (hits[i].distance >= best || hits[i].collider.transform.IsChildOf(transform)) continue;
-
-            best = hits[i].distance;
-            nearest = hits[i];
-        }
-
-        return best < float.PositiveInfinity;
     }
 
     // ---- Interact (E) -----------------------------------------------------------------------
@@ -306,14 +295,14 @@ public class PhotonEmitter : MonoBehaviour, IInteractable, IResettable
 
     void OnDrawGizmosSelected()
     {
-        Transform from = Muzzle;
-        Vector3 end = from.position + from.forward * range;
-
-        // Physics answers in edit mode too, so this shows what the laser will hit while placing it.
-        if (FirstHit(from.position, from.forward, out RaycastHit hit)) end = hit.point;
+        // Physics answers in edit mode too, so this shows where the laser will go, mirrors and
+        // all, while placing it.
+        int points = Trace(out _, out _);
 
         Gizmos.color = laserColor;
-        Gizmos.DrawLine(from.position, end);
-        Gizmos.DrawWireSphere(end, 0.06f);
+
+        for (int i = 1; i < points; i++) Gizmos.DrawLine(path[i - 1], path[i]);
+
+        Gizmos.DrawWireSphere(path[points - 1], 0.06f);
     }
 }

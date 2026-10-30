@@ -3,6 +3,8 @@ using UnityEngine;
 // A which-path instrument. When it can see a slit gate it learns which slit each photon took,
 // which destroys the interference term and collapses the wall to two plain bands. On the player,
 // given the camera, seeing the slits is the act of observing. On a prop it aims with a cone.
+// Seeing them in a MirrorSurface counts too: knowing which slit a photon took is the same whether
+// the light from the slits reached the instrument straight or off a mirror.
 [AddComponentMenu("Wave Duality/Which Path Detector")]
 public class WhichPathDetector : MonoBehaviour
 {
@@ -41,9 +43,13 @@ public class WhichPathDetector : MonoBehaviour
     [SerializeField] private Color observingColor = new Color(1f, 0.45f, 0.35f);
     [SerializeField] private float lineThickness = 0.02f;
 
+    // How far in front of the glass a reflected line of sight is tested from, so the wall the
+    // mirror hangs on never counts as being in the way of its own reflection.
+    private const float MirrorClearance = 0.01f;
+
     // Shared by every detector, which is safe because Update never runs two at once.
-    private static readonly RaycastHit[] hits = new RaycastHit[16];
     private static readonly Vector3[] slitPoints = new Vector3[6];
+    private static readonly Vector3[] sightPath = new Vector3[MirrorSurface.MaxBounces + 2];
 
     private LineRenderer line;
     private SlitGate nearest;
@@ -112,14 +118,32 @@ public class WhichPathDetector : MonoBehaviour
 
         Transform eye = Eye;
         Vector3 target = gate.AimPoint;
-        Vector3 toGate = target - eye.position;
 
-        if (toGate.sqrMagnitude > range * range) return false;
+        if (InCone(eye, target, Vector3.Distance(eye.position, target))
+            && (!requireLineOfSight || Unblocked(eye.position, target, gate))) return true;
+
+        // Off a mirror the instrument has to aim at where the slits show in the glass, and they
+        // must be in reach along the bounced path, not the straight one.
+        foreach (MirrorSurface mirror in MirrorSurface.Active)
+        {
+            if (mirror == null || !mirror.TryViewThrough(eye.position, target, out Vector3 onGlass)) continue;
+
+            float path = Vector3.Distance(eye.position, onGlass) + Vector3.Distance(onGlass, target);
+
+            if (InCone(eye, onGlass, path)
+                && (!requireLineOfSight || UnblockedVia(eye.position, onGlass, mirror, target, gate))) return true;
+        }
+
+        return false;
+    }
+
+    // Within reach, and inside the aiming cone toward the given point.
+    private bool InCone(Transform eye, Vector3 toward, float distance)
+    {
+        if (distance > range) return false;
 
         // Half angle, so the serialized value reads as the full width of the cone.
-        if (Vector3.Angle(eye.forward, toGate) > coneAngle * 0.5f) return false;
-
-        return !requireLineOfSight || Unblocked(eye.position, target, gate);
+        return Vector3.Angle(eye.forward, toward - eye.position) <= coneAngle * 0.5f;
     }
 
     // Seen means a point down either slit lands inside the camera's view with nothing solid in
@@ -131,23 +155,50 @@ public class WhichPathDetector : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            Vector3 view = viewCamera.WorldToViewportPoint(slitPoints[i]);
+            if (InViewport(slitPoints[i]) && (!requireLineOfSight || Unblocked(eye, slitPoints[i], gate))) return true;
+        }
 
-            if (view.z <= 0f || view.z > viewCamera.farClipPlane) continue;
-            if (view.x < 0f || view.x > 1f || view.y < 0f || view.y > 1f) continue;
+        // In a mirror, the slit's reflection is what has to be on screen, and that is where the
+        // line to it crosses the glass.
+        foreach (MirrorSurface mirror in MirrorSurface.Active)
+        {
+            if (mirror == null) continue;
 
-            if (!requireLineOfSight || Unblocked(eye, slitPoints[i], gate)) return true;
+            for (int i = 0; i < count; i++)
+            {
+                if (!mirror.TryViewThrough(eye, slitPoints[i], out Vector3 onGlass) || !InViewport(onGlass)) continue;
+
+                if (!requireLineOfSight || UnblockedVia(eye, onGlass, mirror, slitPoints[i], gate)) return true;
+            }
         }
 
         return false;
     }
 
+    private bool InViewport(Vector3 point)
+    {
+        Vector3 view = viewCamera.WorldToViewportPoint(point);
+
+        return view.z > 0f && view.z <= viewCamera.farClipPlane
+               && view.x >= 0f && view.x <= 1f && view.y >= 0f && view.y <= 1f;
+    }
+
+    // Through glass, as light goes, so slits seen through a window still count.
     private bool Unblocked(Vector3 from, Vector3 to, SlitGate gate)
     {
-        if (!Physics.Linecast(from, to, out RaycastHit hit, blockers, QueryTriggerInteraction.Ignore)) return true;
+        if (!GlassPane.Linecast(from, to, blockers, out RaycastHit hit)) return true;
 
         // Hitting the gate itself, or our own body, is not something in the way.
         return hit.transform.IsChildOf(gate.transform) || hit.transform.IsChildOf(transform);
+    }
+
+    // Both legs of a reflected line of sight, eye to glass and glass to slit, each stopping just
+    // in front of the glass.
+    private bool UnblockedVia(Vector3 eye, Vector3 onGlass, MirrorSurface mirror, Vector3 target, SlitGate gate)
+    {
+        Vector3 front = onGlass + mirror.Normal * MirrorClearance;
+
+        return Unblocked(eye, front, gate) && Unblocked(front, target, gate);
     }
 
     private void DrawSightLine()
@@ -162,40 +213,21 @@ public class WhichPathDetector : MonoBehaviour
         if (line == null) BuildLine();
 
         Transform eye = Eye;
-        Vector3 end = eye.position + eye.forward * range;
 
-        // Straight along where it points, never bent onto a gate. The colour says whether it
-        // is reading slits, since the cone can catch a gate the line itself passes beside.
-        if (FirstHit(eye.position, eye.forward, out RaycastHit hit)) end = hit.point;
+        // Along where it points and off any mirrors, never bent onto a gate. The colour says
+        // whether it is reading slits, since the cone can catch a gate the line passes beside.
+        // Its own body is skipped, so the line starts cleanly from inside the prop's collider.
+        int points = MirrorSurface.TracePath(eye.position, eye.forward, range, blockers, transform, sightPath, out _, out _);
 
         line.enabled = true;
-        line.SetPosition(0, eye.position);
-        line.SetPosition(1, end);
+        line.positionCount = points;
+
+        for (int i = 0; i < points; i++) line.SetPosition(i, sightPath[i]);
 
         Color color = nearest != null ? observingColor : idleColor;
 
         line.startColor = color;
         line.endColor = new Color(color.r, color.g, color.b, color.a * 0.25f);
-    }
-
-    // Nearest hit that is not part of this prop, so the line starts cleanly from inside its
-    // own collider. Same rule as PhotonEmitter.FirstHit.
-    private bool FirstHit(Vector3 origin, Vector3 direction, out RaycastHit first)
-    {
-        first = default;
-        float best = float.PositiveInfinity;
-
-        int count = Physics.RaycastNonAlloc(origin, direction, hits, range, blockers, QueryTriggerInteraction.Ignore);
-
-        for (int i = 0; i < count; i++)
-        {
-            if (hits[i].distance >= best || hits[i].collider.transform.IsChildOf(transform)) continue;
-
-            best = hits[i].distance;
-            first = hits[i];
-        }
-
-        return best < float.PositiveInfinity;
     }
 
     private void BuildLine()
